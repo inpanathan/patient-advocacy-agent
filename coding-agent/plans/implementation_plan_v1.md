@@ -1,7 +1,7 @@
 # Patient Advocacy Agent - Implementation Plan v1
 
 **Created:** 2026-02-18
-**Status:** In Progress — Phases 0-9 Done, Phase 10 In Progress
+**Status:** In Progress — Phases 0-10 Done, Phase 11 In Progress
 **Total Requirements:** 157 (116 common + 41 documentation)
 **Phases:** 11
 **Source Documents:**
@@ -399,20 +399,20 @@ architecture overview, design spec, deployment runbook, and PRD.
 
 | # | Task | Reqs Covered | Status |
 |---|------|-------------|--------|
-| 10.1 | Create document templates (consistent sections, headings, tables) | REQ-ADO-001 | Pending |
-| 10.2 | Produce Architecture Overview with C4 context + container diagrams (Mermaid) | REQ-ADO-002, REQ-ADO-003, REQ-CST-015, REQ-CST-016 | Pending |
-| 10.3 | Produce Design Specification: module responsibilities, interfaces, data models, error handling, NFR constraints | REQ-ADO-004 | Pending |
-| 10.4 | Produce Deployment & Operational Runbook: environments, infra topology, CI/CD, config, scaling, SLOs | REQ-ADO-005, REQ-DOC-003 | Pending |
-| 10.5 | Produce PRD/SRS Hybrid: user goals, functional reqs, quality attributes, acceptance criteria, dependencies | REQ-ADO-006 | Pending |
-| 10.6 | Write docstrings for all public modules, classes, and functions | REQ-DOC-001 | Pending |
-| 10.7 | Create Architecture Decision Records (ADRs): WebRTC, SCIN, contrastive loss, MedGemma/SigLIP-2, vector store | REQ-CST-003 | Pending |
-| 10.8 | Build traceability matrix: requirements -> arch drivers -> design decisions | REQ-CST-001, REQ-CST-002 | Pending |
-| 10.9 | Document NFR-to-design mapping: performance budgets, reliability targets, security boundaries | REQ-CST-004 - REQ-CST-008 | Pending |
-| 10.10 | Document LLM/agent specifics: model versions, prompting strategy, tools, safety policies, config params | REQ-CST-009 - REQ-CST-014 | Pending |
-| 10.11 | Create project glossary (SOAP, ICD, SCIN, Fitzpatrick, PHI, PII, RAG, WebRTC) | REQ-DLP-005 | Pending |
-| 10.12 | Initialize changelog (CHANGELOG.md) | REQ-DOC-004 | Pending |
-| 10.13 | Create troubleshooting guide | REQ-AGT-004 | Pending |
-| 10.14 | Define document sign-off authority (project lead, medical advisor, security reviewer) | REQ-DLP-006 | Pending |
+| 10.1 | Create document templates (consistent sections, headings, tables) | REQ-ADO-001 | Done |
+| 10.2 | Produce Architecture Overview with C4 context + container diagrams (Mermaid) | REQ-ADO-002, REQ-ADO-003, REQ-CST-015, REQ-CST-016 | Done |
+| 10.3 | Produce Design Specification: module responsibilities, interfaces, data models, error handling, NFR constraints | REQ-ADO-004 | Done |
+| 10.4 | Produce Deployment & Operational Runbook: environments, infra topology, CI/CD, config, scaling, SLOs | REQ-ADO-005, REQ-DOC-003 | Done |
+| 10.5 | Produce PRD/SRS Hybrid: user goals, functional reqs, quality attributes, acceptance criteria, dependencies | REQ-ADO-006 | Done |
+| 10.6 | Write docstrings for all public modules, classes, and functions | REQ-DOC-001 | Done |
+| 10.7 | Create Architecture Decision Records (ADRs): WebRTC, SCIN, contrastive loss, MedGemma/SigLIP-2, vector store | REQ-CST-003 | Done |
+| 10.8 | Build traceability matrix: requirements -> arch drivers -> design decisions | REQ-CST-001, REQ-CST-002 | Done |
+| 10.9 | Document NFR-to-design mapping: performance budgets, reliability targets, security boundaries | REQ-CST-004 - REQ-CST-008 | Done |
+| 10.10 | Document LLM/agent specifics: model versions, prompting strategy, tools, safety policies, config params | REQ-CST-009 - REQ-CST-014 | Done |
+| 10.11 | Create project glossary (SOAP, ICD, SCIN, Fitzpatrick, PHI, PII, RAG, WebRTC) | REQ-DLP-005 | Done |
+| 10.12 | Initialize changelog (CHANGELOG.md) | REQ-DOC-004 | Done |
+| 10.13 | Create troubleshooting guide | REQ-AGT-004 | Done |
+| 10.14 | Define document sign-off authority (project lead, medical advisor, security reviewer) | REQ-DLP-006 | Done |
 
 ### Deliverables
 - Architecture Overview (C4 diagrams in Mermaid)
