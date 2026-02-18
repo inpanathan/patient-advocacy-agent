@@ -1,7 +1,7 @@
 # Patient Advocacy Agent - Implementation Plan v1
 
 **Created:** 2026-02-18
-**Status:** In Progress — Phases 0-8 Done, Phase 9 In Progress
+**Status:** In Progress — Phases 0-9 Done, Phase 10 In Progress
 **Total Requirements:** 157 (116 common + 41 documentation)
 **Phases:** 11
 **Source Documents:**
@@ -364,18 +364,18 @@ quality gates, smoke tests, and rollback capability.
 
 | # | Task | Reqs Covered | Status |
 |---|------|-------------|--------|
-| 9.1 | Containerize the application (Dockerfile + docker-compose) | REQ-DEP-002 | Pending |
-| 9.2 | Extend GitHub Actions pipeline: lint -> type-check -> unit tests -> integration tests -> build | REQ-CIC-001, REQ-CIC-005 | Pending |
-| 9.3 | Add scheduled nightly/weekly evaluation pipeline (model quality, bias, safety) | REQ-CIC-002 | Pending |
-| 9.4 | Automate deployment to staging via pipeline (no manual steps) | REQ-CIC-003 | Pending |
-| 9.5 | Automate deployment to production with canary/shadow strategy | REQ-CIC-003, REQ-OBS-057 | Pending |
-| 9.6 | Add post-deploy smoke tests: voice processing, image capture, RAG retrieval, SOAP generation, case history delivery | REQ-CIC-004 | Pending |
-| 9.7 | Implement model version comparison gate: compare old vs. new before promotion | REQ-OBS-058 | Pending |
-| 9.8 | Implement quick rollback to prior model version | REQ-OBS-059 | Pending |
-| 9.9 | Scan container images for vulnerabilities in CI | REQ-SEC-005 | Pending |
-| 9.10 | Schedule periodic security review cadence | REQ-SEC-008 | Pending |
-| 9.11 | Wire doc-drift detection into CI (flag stale docs) | REQ-DLP-002 | Pending |
-| 9.12 | Define sign-off gates for infra changes and production deployments | REQ-DLP-007 | Pending |
+| 9.1 | Containerize the application (Dockerfile + docker-compose) | REQ-DEP-002 | Done |
+| 9.2 | Extend GitHub Actions pipeline: lint -> type-check -> unit tests -> integration tests -> build | REQ-CIC-001, REQ-CIC-005 | Done |
+| 9.3 | Add scheduled nightly/weekly evaluation pipeline (model quality, bias, safety) | REQ-CIC-002 | Done |
+| 9.4 | Automate deployment to staging via pipeline (no manual steps) | REQ-CIC-003 | Done |
+| 9.5 | Automate deployment to production with canary/shadow strategy | REQ-CIC-003, REQ-OBS-057 | Done |
+| 9.6 | Add post-deploy smoke tests: voice processing, image capture, RAG retrieval, SOAP generation, case history delivery | REQ-CIC-004 | Done |
+| 9.7 | Implement model version comparison gate: compare old vs. new before promotion | REQ-OBS-058 | Done |
+| 9.8 | Implement quick rollback to prior model version | REQ-OBS-059 | Done |
+| 9.9 | Scan container images for vulnerabilities in CI | REQ-SEC-005 | Done |
+| 9.10 | Schedule periodic security review cadence | REQ-SEC-008 | Done |
+| 9.11 | Wire doc-drift detection into CI (flag stale docs) | REQ-DLP-002 | Done |
+| 9.12 | Define sign-off gates for infra changes and production deployments | REQ-DLP-007 | Done |
 
 ### Deliverables
 - Fully automated CI/CD from commit to production

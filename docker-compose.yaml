@@ -1,0 +1,63 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=development
+      - DEBUG=true
+      - USE_MOCKS=true
+      - LOG_FORMAT=json
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./data:/app/data:ro
+      - ./configs:/app/configs:ro
+      - audit-data:/app/audit
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+
+  # For production with GPU support
+  app-gpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - USE_MOCKS=false
+      - LOG_FORMAT=json
+      - LOG_LEVEL=INFO
+      - SECRET_KEY=${SECRET_KEY}
+      - MEDGEMMA_API_KEY=${MEDGEMMA_API_KEY}
+    volumes:
+      - ./data:/app/data:ro
+      - ./configs:/app/configs:ro
+      - audit-data:/app/audit
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          memory: 16G
+    profiles:
+      - gpu
+
+volumes:
+  audit-data:
