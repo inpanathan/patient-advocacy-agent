@@ -47,6 +47,7 @@ class PatientSession(BaseModel):
     soap_note_id: str = ""
     escalated: bool = False
     escalation_reason: str = ""
+    image_analysis: str = ""
 
     def advance_to(self, stage: SessionStage) -> None:
         """Advance session to a new stage."""

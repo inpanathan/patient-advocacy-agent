@@ -15,9 +15,10 @@ from main import create_app
 
 @pytest.fixture
 def client():
-    """Create a test client for the FastAPI app."""
+    """Create a test client for the FastAPI app with lifespan events."""
     app = create_app()
-    return TestClient(app)
+    with TestClient(app) as c:
+        yield c
 
 
 class TestHealthCheck:
@@ -31,6 +32,16 @@ class TestHealthCheck:
         assert data["status"] == "ok"
         assert "env" in data
         assert "version" in data
+
+    def test_health_shows_backend(self, client):
+        """Health endpoint includes model_backend and scin_records."""
+        response = client.get("/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert "model_backend" in data
+        assert data["model_backend"] in {"mock", "local", "cloud"}
+        assert "scin_records" in data
+        assert isinstance(data["scin_records"], int)
 
 
 class TestSessionAPI:
@@ -110,6 +121,89 @@ class TestInteractionAPI:
         assert response.json()["consent"] is True
 
 
+class TestAudioInteractionAPI:
+    """Test the audio interaction endpoint."""
+
+    def test_audio_interact(self, client):
+        """POST audio bytes -> STT -> process -> TTS -> response with audio."""
+        create_resp = client.post("/api/v1/sessions")
+        session_id = create_resp.json()["session_id"]
+
+        # Send fake audio bytes (mock STT will handle them)
+        fake_audio = b"\x00" * 1600
+        response = client.post(
+            f"/api/v1/sessions/{session_id}/audio",
+            files={"audio": ("test.wav", fake_audio, "audio/wav")},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["response"]
+        assert data["audio_base64"]
+        assert data["audio_format"] == "wav"
+        assert data["session_id"] == session_id
+        assert data["stage"]
+        assert data["detected_language"]
+        assert data["stt_confidence"] > 0
+
+    def test_audio_interact_session_not_found(self, client):
+        """Audio interact returns 404 for missing session."""
+        fake_audio = b"\x00" * 1600
+        response = client.post(
+            "/api/v1/sessions/nonexistent/audio",
+            files={"audio": ("test.wav", fake_audio, "audio/wav")},
+        )
+        assert response.status_code == 404
+
+
+class TestImageUploadAPI:
+    """Test image upload endpoint."""
+
+    def test_image_upload(self, client, tmp_path):
+        """Upload image with consent -> saved + RAG queried."""
+        create_resp = client.post("/api/v1/sessions")
+        session_id = create_resp.json()["session_id"]
+
+        # Grant consent first
+        client.post(
+            f"/api/v1/sessions/{session_id}/consent",
+            json={"consent": True},
+        )
+
+        # Upload a fake image
+        fake_image = b"\xff\xd8\xff\xe0" + b"\x00" * 100  # JPEG-ish header
+        response = client.post(
+            f"/api/v1/sessions/{session_id}/image",
+            files={"image": ("skin_photo.jpg", fake_image, "image/jpeg")},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["image_id"]
+        assert data["session_id"] == session_id
+        assert isinstance(data["similar_cases"], list)
+        assert isinstance(data["image_analysis"], str)
+
+    def test_image_upload_no_consent(self, client):
+        """Upload image without consent -> 403."""
+        create_resp = client.post("/api/v1/sessions")
+        session_id = create_resp.json()["session_id"]
+
+        fake_image = b"\xff\xd8\xff\xe0" + b"\x00" * 100
+        response = client.post(
+            f"/api/v1/sessions/{session_id}/image",
+            files={"image": ("skin_photo.jpg", fake_image, "image/jpeg")},
+        )
+        assert response.status_code == 403
+
+    def test_image_upload_session_not_found(self, client):
+        """Upload image for missing session -> 404."""
+        fake_image = b"\xff\xd8\xff\xe0" + b"\x00" * 100
+        response = client.post(
+            "/api/v1/sessions/nonexistent/image",
+            files={"image": ("skin_photo.jpg", fake_image, "image/jpeg")},
+        )
+        assert response.status_code == 404
+
+
 class TestMedicalAPI:
     """Test medical endpoints (SOAP, case history)."""
 
@@ -147,6 +241,17 @@ class TestMedicalAPI:
         response = client.post(f"/api/v1/sessions/{session_id}/soap")
         assert response.status_code == 400
 
+    def test_soap_without_rag(self, client):
+        """SOAP works even when RAG index is empty (graceful degradation)."""
+        session_id = self._create_session_with_transcript(client)
+
+        response = client.post(f"/api/v1/sessions/{session_id}/soap")
+        assert response.status_code == 200
+        data = response.json()
+        # Should still produce a valid SOAP note
+        assert data["subjective"]
+        assert data["disclaimer"]
+
     def test_get_case_history(self, client):
         """Case history is formatted correctly."""
         session_id = self._create_session_with_transcript(client)
@@ -158,3 +263,24 @@ class TestMedicalAPI:
         assert data["session_id"] == session_id
         assert "subjective" in data["soap_note"]
         assert data["disclaimer"]
+
+
+class TestStartupLifecycle:
+    """Test that the app lifespan initializes RAG state."""
+
+    def test_startup_no_scin(self, client):
+        """App starts gracefully when SCIN data is not present."""
+        # The client fixture calls create_app() which invokes lifespan.
+        # In test env, SCIN data doesn't exist, so we just verify
+        # the app is functional and health reports 0 records.
+        response = client.get("/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["scin_records"] == 0
+
+    def test_rag_retriever_on_app_state(self, client):
+        """App state has rag_retriever and vector_index after startup."""
+        # Access the underlying app through the test client
+        app = client.app
+        assert hasattr(app.state, "rag_retriever")
+        assert hasattr(app.state, "vector_index")

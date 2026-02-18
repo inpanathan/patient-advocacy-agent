@@ -5,10 +5,55 @@ Starts the FastAPI server with structured logging and validated configuration.
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import TYPE_CHECKING
+
 import uvicorn
+from fastapi import Request
 
 from src.utils.config import settings
 from src.utils.logger import get_logger, setup_logging
+
+if TYPE_CHECKING:
+    from fastapi import FastAPI
+
+logger = get_logger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: F821
+    """App startup/shutdown lifecycle.
+
+    Startup: load SCIN data and build the RAG vector index.
+    Shutdown: log clean exit.
+    """
+    from src.data.scin_loader import SCINLoader
+    from src.models.rag_retrieval import RAGRetriever, VectorIndex
+    from src.pipelines.index_embeddings import index_scin_records
+
+    index = VectorIndex()
+    scin_path = Path(settings.scin.data_dir) / "metadata.json"
+
+    if scin_path.exists():
+        try:
+            loader = SCINLoader(settings.scin.data_dir)
+            records = loader.load()
+            index_scin_records(records, index)
+            logger.info("scin_data_loaded", record_count=index.size)
+        except Exception as exc:
+            logger.warning("scin_load_failed", error=str(exc))
+    else:
+        logger.warning("scin_data_not_found", path=str(scin_path))
+
+    retriever = RAGRetriever(index, top_k=settings.vector_store.top_k)
+    app.state.rag_retriever = retriever  # type: ignore[attr-defined]
+    app.state.vector_index = index  # type: ignore[attr-defined]
+
+    yield
+
+    logger.info("app_shutdown")
 
 
 def create_app():
@@ -28,6 +73,7 @@ def create_app():
             "**This system is NOT a doctor.**"
         ),
         version="0.1.0",
+        lifespan=lifespan,
         docs_url="/docs" if settings.app_debug else None,
         redoc_url="/redoc" if settings.app_debug else None,
     )
@@ -45,11 +91,14 @@ def create_app():
     app.include_router(router, prefix="/api/v1")
 
     @app.get("/health")
-    async def health_check():
+    async def health_check(request: Request):
+        index = getattr(request.app.state, "vector_index", None)
         return {
             "status": "ok",
             "env": settings.app_env,
             "version": "0.1.0",
+            "model_backend": settings.model_backend,
+            "scin_records": index.size if index else 0,
         }
 
     @app.exception_handler(AppError)
