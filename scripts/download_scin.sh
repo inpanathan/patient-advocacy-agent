@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Download and prepare the SCIN (Skin Condition Image Network) dataset.
 #
-# The SCIN dataset is hosted on Google Cloud Storage by Google Research.
+# The SCIN dataset is publicly hosted on Google Cloud Storage.
 # Source: https://github.com/google-research-datasets/scin
 #
 # Usage:
@@ -9,15 +9,12 @@
 #   bash scripts/download_scin.sh --skip-images # Download metadata only (fast)
 #   bash scripts/download_scin.sh --limit 100   # Download first N cases only
 #
-# Prerequisites:
-#   pip install google-cloud-storage   (or: uv pip install google-cloud-storage)
-#   gcloud auth application-default login
+# No cloud SDK or authentication required — uses public HTTPS URLs.
 #
 # What it does:
-#   1. Downloads scin_cases.csv and scin_labels.csv from GCS
-#   2. Downloads all case images from GCS
-#   3. Converts CSV data into metadata.json (our app's expected format)
-#   4. Validates the converted records against our SCINRecord schema
+#   1. Downloads scin_cases.csv and scin_labels.csv via HTTPS
+#   2. Converts CSV data into metadata.json (our app's expected format)
+#   3. Downloads all case images via HTTPS
 #
 # Output:
 #   data/raw/scin/
@@ -26,7 +23,6 @@
 #   ├── metadata.json           # Converted for our app
 #   └── images/                 # Downloaded images
 #       ├── <case_id>_1.jpg
-#       ├── <case_id>_2.jpg
 #       └── ...
 #
 # Covers: REQ-RUN-001
@@ -39,6 +35,7 @@ cd "$PROJECT_ROOT"
 DATA_DIR="${SCIN_DATA_DIR:-data/raw/scin}"
 SKIP_IMAGES=false
 LIMIT=0
+GCS_BASE="https://storage.googleapis.com/dx-scin-public-data/dataset"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -55,8 +52,8 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $0 [--skip-images] [--limit N]"
             echo ""
             echo "Options:"
-            echo "  --skip-images  Download metadata only, skip image files"
-            echo "  --limit N      Download only the first N cases"
+            echo "  --skip-images  Download metadata CSVs only, skip image files"
+            echo "  --limit N      Convert only the first N cases"
             exit 0
             ;;
         *)
@@ -73,74 +70,59 @@ echo "Skip images:     $SKIP_IMAGES"
 [[ $LIMIT -gt 0 ]] && echo "Limit:           $LIMIT cases"
 echo ""
 
-# Check prerequisites
-if ! uv run python -c "import google.cloud.storage" 2>/dev/null; then
-    echo "Missing dependency: google-cloud-storage"
-    echo ""
-    echo "Install it with:"
-    echo "  uv pip install google-cloud-storage"
-    echo ""
-    echo "Then authenticate with:"
-    echo "  gcloud auth application-default login"
-    echo ""
-    exit 1
-fi
-
 mkdir -p "$DATA_DIR/images"
 
-# Run the Python download + conversion script
+# ---- Download CSVs ----
+CASES_CSV="$DATA_DIR/scin_cases.csv"
+LABELS_CSV="$DATA_DIR/scin_labels.csv"
+
+if [[ -f "$CASES_CSV" ]]; then
+    echo "scin_cases.csv already exists, skipping download"
+else
+    echo "Downloading scin_cases.csv ..."
+    curl -fSL --progress-bar -o "$CASES_CSV" "$GCS_BASE/scin_cases.csv"
+fi
+
+if [[ -f "$LABELS_CSV" ]]; then
+    echo "scin_labels.csv already exists, skipping download"
+else
+    echo "Downloading scin_labels.csv ..."
+    curl -fSL --progress-bar -o "$LABELS_CSV" "$GCS_BASE/scin_labels.csv"
+fi
+
+echo ""
+echo "CSVs downloaded. Converting to metadata.json ..."
+echo ""
+
+# ---- Convert CSVs to metadata.json and download images ----
 uv run python -c "
-import io
+import ast
+import csv
 import json
+import subprocess
 import sys
 from pathlib import Path
-
-from google.cloud import storage
 
 DATA_DIR = Path('$DATA_DIR')
 SKIP_IMAGES = $( [[ "$SKIP_IMAGES" == "true" ]] && echo "True" || echo "False" )
 LIMIT = $LIMIT
-
-BUCKET_NAME = 'dx-scin-public-data'
-CASES_BLOB = 'dataset/scin_cases.csv'
-LABELS_BLOB = 'dataset/scin_labels.csv'
-
-print('Connecting to GCS bucket:', BUCKET_NAME)
-client = storage.Client.create_anonymous_client()
-bucket = client.bucket(BUCKET_NAME)
-
-# ---- Download CSVs ----
-import csv
-
-print('Downloading scin_cases.csv ...')
-cases_bytes = bucket.blob(CASES_BLOB).download_as_bytes()
-cases_path = DATA_DIR / 'scin_cases.csv'
-cases_path.write_bytes(cases_bytes)
-print(f'  Saved: {cases_path} ({len(cases_bytes):,} bytes)')
-
-print('Downloading scin_labels.csv ...')
-labels_bytes = bucket.blob(LABELS_BLOB).download_as_bytes()
-labels_path = DATA_DIR / 'scin_labels.csv'
-labels_path.write_bytes(labels_bytes)
-print(f'  Saved: {labels_path} ({len(labels_bytes):,} bytes)')
+GCS_BASE = '$GCS_BASE'
 
 # ---- Parse CSVs ----
-cases_reader = csv.DictReader(io.StringIO(cases_bytes.decode('utf-8')))
-cases = list(cases_reader)
-print(f'  Cases loaded: {len(cases)}')
+with open(DATA_DIR / 'scin_cases.csv', encoding='utf-8') as f:
+    cases = list(csv.DictReader(f))
+print(f'Cases loaded: {len(cases)}')
 
-labels_reader = csv.DictReader(io.StringIO(labels_bytes.decode('utf-8')))
-labels_by_id = {}
-for row in labels_reader:
-    labels_by_id[row['case_id']] = row
+with open(DATA_DIR / 'scin_labels.csv', encoding='utf-8') as f:
+    labels_by_id = {row['case_id']: row for row in csv.DictReader(f)}
+print(f'Labels loaded: {len(labels_by_id)}')
 
-# ---- Map Fitzpatrick types ----
+# ---- Mappings ----
 FST_MAP = {
     'FST1': 'I', 'FST2': 'II', 'FST3': 'III',
     'FST4': 'IV', 'FST5': 'V', 'FST6': 'VI',
 }
 
-# ---- Map body parts ----
 BODY_PART_MAP = {
     'HEAD_OR_NECK': 'head/neck', 'ARM': 'arm', 'PALM': 'palm',
     'BACK_OF_HAND': 'hand', 'ANTERIOR_TORSO': 'chest',
@@ -149,7 +131,6 @@ BODY_PART_MAP = {
     'TOP_OF_FOOT': 'foot', 'SOLE_OF_FOOT': 'foot',
 }
 
-# ---- Map age groups ----
 AGE_MAP = {
     'AGE_18_TO_29': 'adult', 'AGE_30_TO_39': 'adult',
     'AGE_40_TO_49': 'adult', 'AGE_50_TO_59': 'adult',
@@ -157,8 +138,6 @@ AGE_MAP = {
     'AGE_80_OR_ABOVE': 'elderly',
 }
 
-# ---- Map SCIN condition labels to ICD-10 codes ----
-# Common dermatology condition -> ICD code mapping
 CONDITION_ICD_MAP = {
     'acne': 'L70.0', 'atopic dermatitis': 'L20.0', 'eczema': 'L20.0',
     'psoriasis': 'L40.0', 'contact dermatitis': 'L25.0',
@@ -173,43 +152,39 @@ CONDITION_ICD_MAP = {
     'scabies': 'L86.0', 'lichen planus': 'L43.0',
 }
 
+
 def get_icd_code(label_str):
-    \"\"\"Map a condition label string to an ICD-10 code.\"\"\"
     if not label_str:
-        return 'L98.9'  # Unspecified skin disorder
+        return 'L98.9'
     lower = label_str.lower()
     for condition, code in CONDITION_ICD_MAP.items():
         if condition in lower:
             return code
     return 'L98.9'
 
+
 def get_body_location(case):
-    \"\"\"Extract body location from boolean body_parts columns.\"\"\"
     for col, location in BODY_PART_MAP.items():
         key = f'body_parts_{col}'
         if case.get(key, '').lower() in ('true', '1', 'yes'):
             return location
     return ''
 
+
 def get_diagnosis_label(label_row):
-    \"\"\"Extract the primary diagnosis from label data.\"\"\"
     if not label_row:
         return ''
     label = label_row.get('weighted_skin_condition_label', '')
     if label:
-        # weighted_skin_condition_label is a dict-like string; get first key
         try:
-            import ast
             d = ast.literal_eval(label)
             if isinstance(d, dict) and d:
                 return max(d, key=d.get)
         except (ValueError, SyntaxError):
             pass
-    # Fallback to dermatologist label
     name = label_row.get('dermatologist_skin_condition_label_name', '')
     if name:
         try:
-            import ast
             names = ast.literal_eval(name)
             if isinstance(names, list) and names:
                 return names[0]
@@ -217,9 +192,10 @@ def get_diagnosis_label(label_row):
             return name
     return ''
 
-# ---- Convert to our metadata.json format ----
+
+# ---- Convert to metadata.json ----
 records = []
-image_paths_to_download = []
+image_downloads = []  # (url, local_path)
 count = 0
 
 for case in cases:
@@ -236,7 +212,7 @@ for case in cases:
     fst = FST_MAP.get(fst_raw, '')
 
     if not fst:
-        continue  # Skip records without valid Fitzpatrick type
+        continue
 
     icd_code = get_icd_code(diagnosis)
     body_location = get_body_location(case)
@@ -245,24 +221,22 @@ for case in cases:
     # Collect image paths (up to 3 per case)
     case_images = []
     for img_idx in range(1, 4):
-        img_path = case.get(f'image_{img_idx}_path', '')
-        if img_path:
+        gcs_path = case.get(f'image_{img_idx}_path', '')
+        if gcs_path:
             local_name = f'{case_id}_{img_idx}.jpg'
-            case_images.append((img_path, local_name))
+            case_images.append((gcs_path, local_name))
 
     if not case_images:
         continue
 
-    # Use first image as primary
     primary_gcs_path, primary_local = case_images[0]
 
     # Build tags from symptoms
     tags = []
-    symptom_cols = [c for c in case.keys() if c.startswith('condition_symptoms_')]
-    for col in symptom_cols:
-        if case.get(col, '').lower() in ('true', '1', 'yes'):
+    for col in case:
+        if col.startswith('condition_symptoms_') and case[col].lower() in ('true', '1', 'yes'):
             tag = col.replace('condition_symptoms_', '').lower()
-            if tag not in ('no_relevant_experience',):
+            if tag != 'no_relevant_experience':
                 tags.append(tag)
 
     record = {
@@ -280,7 +254,12 @@ for case in cases:
     records.append(record)
 
     for gcs_path, local_name in case_images:
-        image_paths_to_download.append((gcs_path, local_name))
+        dest = DATA_DIR / 'images' / local_name
+        if not dest.exists():
+            # gcs_path is "dataset/images/..." but GCS_BASE already ends with /dataset
+            clean_path = gcs_path.removeprefix('dataset/')
+            url = f'{GCS_BASE}/{clean_path}'
+            image_downloads.append((url, str(dest)))
 
     count += 1
 
@@ -288,39 +267,44 @@ for case in cases:
 metadata = {'records': records}
 metadata_path = DATA_DIR / 'metadata.json'
 metadata_path.write_text(json.dumps(metadata, indent=2))
-print(f'')
 print(f'Converted {len(records)} records -> {metadata_path}')
-print(f'Images to download: {len(image_paths_to_download)}')
+print(f'Images to download: {len(image_downloads)} (skipping already downloaded)')
 
-# ---- Download images ----
+# ---- Download images via curl ----
 if SKIP_IMAGES:
     print('')
     print('Skipping image download (--skip-images)')
 else:
     print('')
-    print('Downloading images...')
-    downloaded = 0
-    failed = 0
-    for gcs_path, local_name in image_paths_to_download:
-        dest = DATA_DIR / 'images' / local_name
-        if dest.exists():
-            downloaded += 1
-            continue
-        try:
-            blob = bucket.blob(gcs_path)
-            blob.download_to_filename(str(dest))
-            downloaded += 1
-            if downloaded % 100 == 0:
-                print(f'  Downloaded {downloaded}/{len(image_paths_to_download)} images...')
-        except Exception as e:
-            failed += 1
-            if failed <= 5:
-                print(f'  Failed: {gcs_path} -> {e}')
-            elif failed == 6:
-                print(f'  (suppressing further error messages)')
+    total = len(image_downloads)
+    if total == 0:
+        print('All images already downloaded.')
+    else:
+        print(f'Downloading {total} images...')
+        downloaded = 0
+        failed = 0
+        for url, dest in image_downloads:
+            try:
+                result = subprocess.run(
+                    ['curl', '-fsSL', '-o', dest, url],
+                    capture_output=True, timeout=30,
+                )
+                if result.returncode == 0:
+                    downloaded += 1
+                else:
+                    failed += 1
+                    if failed <= 5:
+                        print(f'  Failed: {url}')
+                    elif failed == 6:
+                        print('  (suppressing further error messages)')
+            except subprocess.TimeoutExpired:
+                failed += 1
 
-    print(f'')
-    print(f'Images downloaded: {downloaded}, failed: {failed}')
+            if (downloaded + failed) % 200 == 0:
+                print(f'  Progress: {downloaded + failed}/{total} ({downloaded} ok, {failed} failed)')
+
+        print(f'')
+        print(f'Images: {downloaded} downloaded, {failed} failed')
 
 print('')
 print('=== SCIN download complete ===')
@@ -328,6 +312,8 @@ print('=== SCIN download complete ===')
 
 echo ""
 echo "=== Done ==="
+echo ""
+echo "Dataset stored locally at: $DATA_DIR"
 echo ""
 echo "Next steps:"
 echo "  1. Index embeddings:  bash scripts/index_embeddings.sh"
