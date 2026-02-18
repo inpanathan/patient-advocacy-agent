@@ -1,0 +1,76 @@
+{
+  "records": [
+    {
+      "record_id": "SCIN-001",
+      "image_path": "images/001.jpg",
+      "diagnosis": "Atopic Dermatitis",
+      "icd_code": "L20.0",
+      "fitzpatrick_type": "III",
+      "body_location": "forearm",
+      "age_group": "adult",
+      "severity": "moderate",
+      "description": "Chronic eczematous lesion on forearm with scaling",
+      "tags": ["eczema", "chronic"]
+    },
+    {
+      "record_id": "SCIN-002",
+      "image_path": "images/002.jpg",
+      "diagnosis": "Psoriasis",
+      "icd_code": "L40.0",
+      "fitzpatrick_type": "II",
+      "body_location": "elbow",
+      "age_group": "adult",
+      "severity": "mild",
+      "description": "Plaque psoriasis on bilateral elbows",
+      "tags": ["psoriasis", "plaque"]
+    },
+    {
+      "record_id": "SCIN-003",
+      "image_path": "images/003.jpg",
+      "diagnosis": "Melanoma",
+      "icd_code": "L43.0",
+      "fitzpatrick_type": "I",
+      "body_location": "back",
+      "age_group": "adult",
+      "severity": "severe",
+      "description": "Asymmetric pigmented lesion with irregular borders",
+      "tags": ["melanoma", "malignant", "urgent"]
+    },
+    {
+      "record_id": "SCIN-004",
+      "image_path": "images/004.jpg",
+      "diagnosis": "Contact Dermatitis",
+      "icd_code": "L25.0",
+      "fitzpatrick_type": "V",
+      "body_location": "hands",
+      "age_group": "adult",
+      "severity": "moderate",
+      "description": "Irritant contact dermatitis on dorsal hands",
+      "tags": ["dermatitis", "contact"]
+    },
+    {
+      "record_id": "SCIN-005",
+      "image_path": "images/005.jpg",
+      "diagnosis": "Acne Vulgaris",
+      "icd_code": "L70.0",
+      "fitzpatrick_type": "IV",
+      "body_location": "face",
+      "age_group": "pediatric",
+      "severity": "mild",
+      "description": "Comedonal acne on forehead and cheeks",
+      "tags": ["acne"]
+    },
+    {
+      "record_id": "SCIN-006",
+      "image_path": "images/006.jpg",
+      "diagnosis": "Atopic Dermatitis",
+      "icd_code": "L20.0",
+      "fitzpatrick_type": "VI",
+      "body_location": "legs",
+      "age_group": "pediatric",
+      "severity": "severe",
+      "description": "Widespread eczematous patches on lower extremities",
+      "tags": ["eczema", "pediatric", "severe"]
+    }
+  ]
+}

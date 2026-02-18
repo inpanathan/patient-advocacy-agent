@@ -1,7 +1,7 @@
 # Patient Advocacy Agent - Implementation Plan v1
 
 **Created:** 2026-02-18
-**Status:** Draft - Awaiting Approval
+**Status:** In Progress — Phases 0-1 Done, Phase 2 In Progress
 **Total Requirements:** 157 (116 common + 41 documentation)
 **Phases:** 11
 **Source Documents:**
@@ -63,18 +63,18 @@ for downstream RAG retrieval and model fine-tuning.
 
 | # | Task | Reqs Covered | Status |
 |---|------|-------------|--------|
-| 1.1 | Research SCIN database format: schema, image formats, diagnosis labels, ICD codes, metadata fields | REQ-TST-004 | Pending |
-| 1.2 | Create data ingestion pipeline (`src/data/scin_loader.py`): download/mount SCIN, parse records | REQ-DAT-002 | Pending |
-| 1.3 | Implement data schema validation (column names, types, required fields, ICD code ranges, Fitzpatrick types) | REQ-TST-004, REQ-TST-005, REQ-OBS-012 | Pending |
-| 1.4 | Implement data quality checks: missing values, duplicates, outliers, invalid categories | REQ-TST-006, REQ-TST-007, REQ-OBS-013 | Pending |
-| 1.5 | Compute and store baseline statistics (mean, std, quantiles per feature) for drift comparison | REQ-TST-008, REQ-OBS-015 | Pending |
-| 1.6 | Set up DVC for dataset versioning (SCIN snapshots, training sets, evaluation sets) | REQ-DAT-001 | Pending |
-| 1.7 | Configure artifact storage (S3/GCS/local) for SCIN database + models (not in git) | REQ-DAT-004 | Pending |
-| 1.8 | Implement data lineage tracking (`src/data/lineage.py`): raw source -> processed -> features | REQ-DAT-005, REQ-OBS-009 | Pending |
-| 1.9 | Define data retention and deletion policies for patient data (voice, images, case histories) | REQ-DAT-003, REQ-OBS-060 | Pending |
-| 1.10 | Create data pipeline validation tests (`tests/data/test_scin_loader.py`) | REQ-DAT-002, REQ-TST-016 | Pending |
-| 1.11 | Add data drift alerting thresholds and alert stubs | REQ-TST-009, REQ-OBS-017, REQ-OBS-018 | Pending |
-| 1.12 | Create `scripts/init_data.sh` to download/initialize SCIN data | REQ-RUN-001 | Pending |
+| 1.1 | Research SCIN database format: schema, image formats, diagnosis labels, ICD codes, metadata fields | REQ-TST-004 | Done |
+| 1.2 | Create data ingestion pipeline (`src/data/scin_loader.py`): download/mount SCIN, parse records | REQ-DAT-002 | Done |
+| 1.3 | Implement data schema validation (column names, types, required fields, ICD code ranges, Fitzpatrick types) | REQ-TST-004, REQ-TST-005, REQ-OBS-012 | Done |
+| 1.4 | Implement data quality checks: missing values, duplicates, outliers, invalid categories | REQ-TST-006, REQ-TST-007, REQ-OBS-013 | Done |
+| 1.5 | Compute and store baseline statistics (mean, std, quantiles per feature) for drift comparison | REQ-TST-008, REQ-OBS-015 | Done |
+| 1.6 | Set up DVC for dataset versioning (SCIN snapshots, training sets, evaluation sets) | REQ-DAT-001 | Blocked — DVC requires external storage config |
+| 1.7 | Configure artifact storage (S3/GCS/local) for SCIN database + models (not in git) | REQ-DAT-004 | Blocked — awaiting cloud provider decision |
+| 1.8 | Implement data lineage tracking (`src/data/lineage.py`): raw source -> processed -> features | REQ-DAT-005, REQ-OBS-009 | Done |
+| 1.9 | Define data retention and deletion policies for patient data (voice, images, case histories) | REQ-DAT-003, REQ-OBS-060 | Done |
+| 1.10 | Create data pipeline validation tests (`tests/data/test_scin_loader.py`) | REQ-DAT-002, REQ-TST-016 | Done |
+| 1.11 | Add data drift alerting thresholds and alert stubs | REQ-TST-009, REQ-OBS-017, REQ-OBS-018 | Done |
+| 1.12 | Create `scripts/init_data.sh` to download/initialize SCIN data | REQ-RUN-001 | Done |
 
 ### Deliverables
 - SCIN database ingested, validated, and versioned with DVC
