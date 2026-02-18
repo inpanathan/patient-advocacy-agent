@@ -67,9 +67,11 @@ class LocalEmbeddingModel:
             return outputs
         # BaseModelOutputWithPooling or similar — use pooler_output or last_hidden_state
         if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
-            return outputs.pooler_output
+            pooler: torch.Tensor = outputs.pooler_output
+            return pooler
         if hasattr(outputs, "last_hidden_state"):
-            return outputs.last_hidden_state[:, 0]
+            hidden: torch.Tensor = outputs.last_hidden_state[:, 0]
+            return hidden
         msg = f"Unexpected model output type: {type(outputs)}"
         raise TypeError(msg)
 
