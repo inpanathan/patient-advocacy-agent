@@ -1,9 +1,7 @@
 """Speech-to-text service.
 
 Provides STT with language detection, supporting 5+ languages.
-Uses mock implementation in dev mode; real Google Cloud STT in production.
-
-TODO: Requires GOOGLE_CLOUD_STT_KEY for real implementation.
+Switches between mock, local (Faster-Whisper), and cloud (Google Cloud STT).
 """
 
 from __future__ import annotations
@@ -18,11 +16,24 @@ logger = structlog.get_logger(__name__)
 
 
 def get_stt_service() -> STTProtocol:
-    """Factory to get the STT service."""
-    if settings.use_mocks:
+    """Factory to get the STT service based on model_backend setting."""
+    backend = settings.model_backend
+
+    if settings.use_mocks or backend == "mock":
         logger.info("using_mock_stt")
         return MockSTT()
 
-    # TODO: Real Google Cloud STT implementation
-    logger.warning("real_stt_not_available", fallback="mock")
-    return MockSTT()
+    if backend == "local":
+        from src.models.local.local_stt import LocalSTT
+
+        logger.info("using_local_stt")
+        return LocalSTT()
+
+    if backend == "cloud":
+        from src.models.cloud.cloud_stt import CloudSTT
+
+        logger.info("using_cloud_stt")
+        return CloudSTT()
+
+    msg = f"Unknown model_backend: {backend}"
+    raise ValueError(msg)

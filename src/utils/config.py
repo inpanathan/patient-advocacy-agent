@@ -34,17 +34,21 @@ class LLMSettings(BaseSettings):
     """LLM / MedGemma configuration."""
 
     medgemma_api_key: str = ""
-    medgemma_model_id: str = "medgemma-latest"
+    medgemma_model_id: str = "google/medgemma-4b-it"
     temperature: float = 0.3
     max_tokens: int = 4096
     timeout_seconds: int = 30
+    google_api_key: str = ""
+    device: str = "auto"
 
 
 class EmbeddingSettings(BaseSettings):
     """SigLIP-2 embedding model configuration."""
 
     model_path: str = "models/siglip2"
+    model_id: str = "google/siglip-so400m-patch14-384"
     dimension: int = 768
+    device: str = "auto"
 
 
 class VectorStoreSettings(BaseSettings):
@@ -65,6 +69,10 @@ class VoiceSettings(BaseSettings):
     )
     stt_timeout_seconds: int = 15
     tts_timeout_seconds: int = 15
+    whisper_model_size: str = "large-v3"
+    piper_voices_dir: str = "models/piper"
+    google_cloud_project: str = ""
+    google_application_credentials: str = ""
 
 
 class SCINSettings(BaseSettings):
@@ -111,6 +119,7 @@ class Settings(BaseSettings):
     app_debug: bool = True
     secret_key: str = "CHANGE-ME-IN-PRODUCTION"
     use_mocks: bool = True
+    model_backend: str = "mock"
 
     # ---- Nested settings ----
     logging: LoggingSettings = Field(default_factory=LoggingSettings)
@@ -128,6 +137,15 @@ class Settings(BaseSettings):
         allowed = {"dev", "staging", "production", "test"}
         if v not in allowed:
             msg = f"app_env must be one of {allowed}, got '{v}'"
+            raise ValueError(msg)
+        return v
+
+    @field_validator("model_backend")
+    @classmethod
+    def validate_model_backend(cls, v: str) -> str:
+        allowed = {"mock", "local", "cloud"}
+        if v not in allowed:
+            msg = f"model_backend must be one of {allowed}, got '{v}'"
             raise ValueError(msg)
         return v
 

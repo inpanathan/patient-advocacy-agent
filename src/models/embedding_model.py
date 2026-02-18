@@ -23,20 +23,25 @@ logger = structlog.get_logger(__name__)
 
 
 def get_embedding_model() -> EmbeddingModelProtocol:
-    """Factory to get the appropriate embedding model.
+    """Factory to get the appropriate embedding model based on model_backend setting.
 
-    Returns mock model in dev/test mode, real model in production.
+    SigLIP-2 is used for both local and cloud modes since there is no
+    direct cloud API equivalent for multimodal embeddings.
     """
-    if settings.use_mocks:
+    backend = settings.model_backend
+
+    if settings.use_mocks or backend == "mock":
         logger.info("using_mock_embedding_model")
         return MockEmbeddingModel(dimension=settings.embedding.dimension)
 
-    # TODO: Load real SigLIP-2 model
-    # from transformers import AutoModel, AutoProcessor
-    # model = AutoModel.from_pretrained(settings.embedding.model_path)
-    # processor = AutoProcessor.from_pretrained(settings.embedding.model_path)
-    logger.warning("real_embedding_model_not_available", fallback="mock")
-    return MockEmbeddingModel(dimension=settings.embedding.dimension)
+    if backend in ("local", "cloud"):
+        from src.models.local.local_embedding import LocalEmbeddingModel
+
+        logger.info("using_local_embedding_model", backend=backend)
+        return LocalEmbeddingModel()
+
+    msg = f"Unknown model_backend: {backend}"
+    raise ValueError(msg)
 
 
 def normalize_embeddings(embeddings: NDArray[np.float32]) -> NDArray[np.float32]:

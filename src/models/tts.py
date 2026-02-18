@@ -1,9 +1,7 @@
 """Text-to-speech service.
 
 Provides TTS for patient explanations in detected language.
-Uses mock implementation in dev mode; real Google Cloud TTS in production.
-
-TODO: Requires GOOGLE_CLOUD_TTS_KEY for real implementation.
+Switches between mock, local (Piper TTS), and cloud (Google Cloud TTS).
 """
 
 from __future__ import annotations
@@ -18,11 +16,24 @@ logger = structlog.get_logger(__name__)
 
 
 def get_tts_service() -> TTSProtocol:
-    """Factory to get the TTS service."""
-    if settings.use_mocks:
+    """Factory to get the TTS service based on model_backend setting."""
+    backend = settings.model_backend
+
+    if settings.use_mocks or backend == "mock":
         logger.info("using_mock_tts")
         return MockTTS()
 
-    # TODO: Real Google Cloud TTS implementation
-    logger.warning("real_tts_not_available", fallback="mock")
-    return MockTTS()
+    if backend == "local":
+        from src.models.local.local_tts import LocalTTS
+
+        logger.info("using_local_tts")
+        return LocalTTS()
+
+    if backend == "cloud":
+        from src.models.cloud.cloud_tts import CloudTTS
+
+        logger.info("using_cloud_tts")
+        return CloudTTS()
+
+    msg = f"Unknown model_backend: {backend}"
+    raise ValueError(msg)
