@@ -98,22 +98,22 @@ SCIN database, and validate via clustering.
 
 | # | Task | Reqs Covered | Status |
 |---|------|-------------|--------|
-| 2.1 | Integrate SigLIP-2 model (`src/models/embedding_model.py`): load, preprocess images, generate embeddings | REQ-CST-009, REQ-CST-011 | Pending |
-| 2.2 | Implement contrastive loss function (`src/models/losses.py`) for embedding fine-tuning | REQ-TST-012 | Pending |
-| 2.3 | Build fine-tuning training loop (`src/pipelines/train_embeddings.py`): data loading, training, checkpointing | REQ-OBS-055 | Pending |
-| 2.4 | Implement embedding normalization (unit hypersphere) and isotropy measurement | REQ-TST-011 | Pending |
-| 2.5 | Implement clustering evaluation (`src/evaluation/clustering.py`): silhouette score, per-diagnosis clustering | REQ-TST-021 | Pending |
-| 2.6 | Set up experiment tracking (MLflow / W&B): log hyperparams, metrics, artifacts per run | REQ-OBS-055, REQ-OBS-056, REQ-CFG-004 | Pending |
-| 2.7 | Record model registry entries: dataset ref, code version, hyperparams, eval metrics, environment info | REQ-OBS-004 - REQ-OBS-011 | Pending |
-| 2.8 | Lock in baseline model (pre-fine-tuned SigLIP-2) for regression comparison | REQ-TST-022 | Pending |
-| 2.9 | Implement invariance tests: image rotation, lighting changes should preserve predictions | REQ-TST-024 | Pending |
-| 2.10 | Implement directional expectation tests | REQ-TST-025 | Pending |
-| 2.11 | Evaluate metrics per Fitzpatrick skin type (I-VI) for bias detection | REQ-TST-023, REQ-TST-036, REQ-OBS-045 | Pending |
-| 2.12 | Document observed bias disparities and mitigation steps | REQ-TST-037, REQ-OBS-046 | Pending |
-| 2.13 | Sign and verify model artifacts | REQ-SEC-006 | Pending |
-| 2.14 | Fix random seeds for reproducibility | REQ-TST-044 | Pending |
-| 2.15 | Create `scripts/train_embeddings.sh` | REQ-RUN-001 | Pending |
-| 2.16 | Unit tests for: contrastive loss, embedding normalization, clustering metrics, preprocessing transforms | REQ-TST-010, REQ-TST-011, REQ-TST-012 | Pending |
+| 2.1 | Integrate SigLIP-2 model (`src/models/embedding_model.py`): load, preprocess images, generate embeddings | REQ-CST-009, REQ-CST-011 | Done |
+| 2.2 | Implement contrastive loss function (`src/models/losses.py`) for embedding fine-tuning | REQ-TST-012 | Done |
+| 2.3 | Build fine-tuning training loop (`src/pipelines/train_embeddings.py`): data loading, training, checkpointing | REQ-OBS-055 | Done |
+| 2.4 | Implement embedding normalization (unit hypersphere) and isotropy measurement | REQ-TST-011 | Done |
+| 2.5 | Implement clustering evaluation (`src/evaluation/clustering.py`): silhouette score, per-diagnosis clustering | REQ-TST-021 | Done |
+| 2.6 | Set up experiment tracking (MLflow / W&B): log hyperparams, metrics, artifacts per run | REQ-OBS-055, REQ-OBS-056, REQ-CFG-004 | Blocked — MLflow requires server setup |
+| 2.7 | Record model registry entries: dataset ref, code version, hyperparams, eval metrics, environment info | REQ-OBS-004 - REQ-OBS-011 | Blocked — depends on MLflow |
+| 2.8 | Lock in baseline model (pre-fine-tuned SigLIP-2) for regression comparison | REQ-TST-022 | Blocked — requires real SigLIP-2 weights |
+| 2.9 | Implement invariance tests: image rotation, lighting changes should preserve predictions | REQ-TST-024 | Blocked — requires real model |
+| 2.10 | Implement directional expectation tests | REQ-TST-025 | Blocked — requires real model |
+| 2.11 | Evaluate metrics per Fitzpatrick skin type (I-VI) for bias detection | REQ-TST-023, REQ-TST-036, REQ-OBS-045 | Done (framework, needs real data) |
+| 2.12 | Document observed bias disparities and mitigation steps | REQ-TST-037, REQ-OBS-046 | Blocked — requires real evaluation data |
+| 2.13 | Sign and verify model artifacts | REQ-SEC-006 | Blocked — requires real model artifacts |
+| 2.14 | Fix random seeds for reproducibility | REQ-TST-044 | Done |
+| 2.15 | Create `scripts/train_embeddings.sh` | REQ-RUN-001 | Done |
+| 2.16 | Unit tests for: contrastive loss, embedding normalization, clustering metrics, preprocessing transforms | REQ-TST-010, REQ-TST-011, REQ-TST-012 | Done |
 
 ### Deliverables
 - Fine-tuned embedding model with silhouette score above threshold
