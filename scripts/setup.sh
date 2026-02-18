@@ -49,7 +49,7 @@ echo -e "${GREEN}✓ uv found${NC}"
 # ---- Install dependencies ----
 echo ""
 echo "Installing dependencies..."
-uv sync --extra dev
+uv sync --extra dev --extra ml --extra voice
 echo -e "${GREEN}✓ Dependencies installed${NC}"
 
 # ---- Create .env if missing ----

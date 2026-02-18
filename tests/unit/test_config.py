@@ -24,12 +24,14 @@ class TestSettings:
         with pytest.raises(ValueError, match="app_env must be one of"):
             Settings(app_env="invalid")
 
-    def test_production_requires_secret_key(self):
+    def test_production_requires_secret_key(self, monkeypatch):
         """Production mode rejects default secret key."""
         from src.utils.config import Settings
 
+        # Ensure .env file doesn't inject a SECRET_KEY value
+        monkeypatch.delenv("SECRET_KEY", raising=False)
         with pytest.raises(ValueError, match="SECRET_KEY must be set in production"):
-            Settings(app_env="production", app_debug=False)
+            Settings(app_env="production", app_debug=False, _env_file=None)
 
     def test_production_requires_debug_off(self):
         """Production mode requires debug=False."""
