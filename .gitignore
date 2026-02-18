@@ -35,6 +35,16 @@ mlruns/
 .DS_Store
 Thumbs.db
 
+# Script runtime files (pid + log for backgrounded processes)
+.server.pid
+.server.log
+.voice_pipeline.pid
+.voice_pipeline.log
+.train_embeddings.pid
+.train_embeddings.log
+.index_embeddings.pid
+.index_embeddings.log
+
 # Coverage
 .coverage
 htmlcov/
