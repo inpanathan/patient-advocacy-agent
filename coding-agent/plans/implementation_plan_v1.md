@@ -1,7 +1,7 @@
 # Patient Advocacy Agent - Implementation Plan v1
 
 **Created:** 2026-02-18
-**Status:** In Progress — Phases 0-7 Done, Phase 8 In Progress
+**Status:** In Progress — Phases 0-8 Done, Phase 9 In Progress
 **Total Requirements:** 157 (116 common + 41 documentation)
 **Phases:** 11
 **Source Documents:**
@@ -326,21 +326,21 @@ dimensions (data, model, infrastructure, safety).
 
 | # | Task | Reqs Covered | Status |
 |---|------|-------------|--------|
-| 8.1 | Set up centralized log aggregation (e.g., Loki, ELK, CloudWatch) | REQ-OBS-033 | Pending |
-| 8.2 | Configure log retention and access policies for medical data | REQ-OBS-034, REQ-OBS-062 | Pending |
-| 8.3 | Build model performance dashboard: task metrics, business KPIs, latency, by-segment views | REQ-OBS-019 - REQ-OBS-026 | Pending |
-| 8.4 | Build data quality dashboard: schema checks, distribution drift, null/invalid rates | REQ-OBS-012 - REQ-OBS-018 | Pending |
-| 8.5 | Implement prediction logging: ICD codes, confidence, escalation decisions, retrieval results | REQ-OBS-027 - REQ-OBS-032 | Pending |
-| 8.6 | Implement explainability: which SCIN images retrieved, which features drove ICD suggestion | REQ-OBS-043, REQ-OBS-044 | Pending |
-| 8.7 | Build bias monitoring dashboard: metrics per Fitzpatrick type, per language, per region | REQ-OBS-045, REQ-OBS-046 | Pending |
-| 8.8 | Implement safety evaluators: "do not play doctor" compliance, escalation accuracy | REQ-OBS-047, REQ-OBS-048 | Pending |
-| 8.9 | Define alert thresholds for: data drift, model perf drops, latency spikes, safety incidents | REQ-OBS-049 - REQ-OBS-052 | Pending |
-| 8.10 | Create runbooks for each alert type: root causes, immediate actions, escalation paths | REQ-OBS-053 | Pending |
-| 8.11 | Monitor container health, restarts, queue lengths | REQ-OBS-040, REQ-OBS-041 | Pending |
-| 8.12 | Implement audit trail: reconstruct which model, data, config produced any prediction | REQ-OBS-063 | Pending |
-| 8.13 | Create red-team evaluation dataset and adversarial scenarios | REQ-OBS-065 | Pending |
-| 8.14 | Document governance and regulatory reporting requirements | REQ-OBS-066 | Pending |
-| 8.15 | Wire production monitoring dashboards into `app_cheatsheet.md` | REQ-RUN-003 | Pending |
+| 8.1 | Set up centralized log aggregation (e.g., Loki, ELK, CloudWatch) | REQ-OBS-033 | Done |
+| 8.2 | Configure log retention and access policies for medical data | REQ-OBS-034, REQ-OBS-062 | Done |
+| 8.3 | Build model performance dashboard: task metrics, business KPIs, latency, by-segment views | REQ-OBS-019 - REQ-OBS-026 | Done |
+| 8.4 | Build data quality dashboard: schema checks, distribution drift, null/invalid rates | REQ-OBS-012 - REQ-OBS-018 | Done |
+| 8.5 | Implement prediction logging: ICD codes, confidence, escalation decisions, retrieval results | REQ-OBS-027 - REQ-OBS-032 | Done |
+| 8.6 | Implement explainability: which SCIN images retrieved, which features drove ICD suggestion | REQ-OBS-043, REQ-OBS-044 | Done |
+| 8.7 | Build bias monitoring dashboard: metrics per Fitzpatrick type, per language, per region | REQ-OBS-045, REQ-OBS-046 | Done |
+| 8.8 | Implement safety evaluators: "do not play doctor" compliance, escalation accuracy | REQ-OBS-047, REQ-OBS-048 | Done |
+| 8.9 | Define alert thresholds for: data drift, model perf drops, latency spikes, safety incidents | REQ-OBS-049 - REQ-OBS-052 | Done |
+| 8.10 | Create runbooks for each alert type: root causes, immediate actions, escalation paths | REQ-OBS-053 | Done |
+| 8.11 | Monitor container health, restarts, queue lengths | REQ-OBS-040, REQ-OBS-041 | Done |
+| 8.12 | Implement audit trail: reconstruct which model, data, config produced any prediction | REQ-OBS-063 | Done |
+| 8.13 | Create red-team evaluation dataset and adversarial scenarios | REQ-OBS-065 | Done |
+| 8.14 | Document governance and regulatory reporting requirements | REQ-OBS-066 | Done |
+| 8.15 | Wire production monitoring dashboards into `app_cheatsheet.md` | REQ-RUN-003 | Done |
 
 ### Deliverables
 - Centralized logging with medical data access controls
