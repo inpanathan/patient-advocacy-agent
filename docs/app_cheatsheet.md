@@ -144,6 +144,15 @@ bash scripts/init_data.sh
 # Initialize with mock data for development
 bash scripts/init_data.sh --mock
 
+# Download real SCIN dataset from Google Cloud Storage (~2GB)
+bash scripts/download_scin.sh
+
+# Download metadata only (skip images, fast)
+bash scripts/download_scin.sh --skip-images
+
+# Download a subset for testing (first N cases)
+bash scripts/download_scin.sh --limit 100
+
 # Run SigLIP-2 embedding fine-tuning
 bash scripts/train_embeddings.sh
 
@@ -191,12 +200,17 @@ huggingface-cli login
 # 5. Download all model weights (~20GB)
 bash scripts/download_models.sh
 
-# 6. Initialize data
-bash scripts/init_data.sh
+# 6. Download SCIN dataset (~2GB)
+uv pip install google-cloud-storage
+gcloud auth application-default login
+bash scripts/download_scin.sh
 
-# 7. Start the server
+# 7. Index SCIN embeddings into the vector store
+bash scripts/index_embeddings.sh
+
+# 8. Start the server
 bash scripts/start_server.sh
 
-# 8. Verify with integration tests
+# 9. Verify with integration tests
 MODEL_BACKEND=local uv run pytest tests/integration/test_local_models.py -v
 ```

@@ -80,19 +80,47 @@ huggingface-cli login
 bash scripts/download_models.sh
 ```
 
+#### Download SCIN Dataset
+
+The [SCIN (Skin Condition Image Network)](https://github.com/google-research-datasets/scin)
+dataset provides 10,000+ dermatological images for the RAG knowledge base.
+
+```bash
+# 6. Install Google Cloud Storage client
+uv pip install google-cloud-storage
+
+# 7. Authenticate with Google Cloud (for GCS bucket access)
+gcloud auth application-default login
+
+# 8. Download full SCIN dataset (~2GB: metadata + images)
+bash scripts/download_scin.sh
+
+# OR: Download metadata only (fast, ~10MB)
+bash scripts/download_scin.sh --skip-images
+
+# OR: Download a subset for testing
+bash scripts/download_scin.sh --limit 100
+```
+
+The script downloads from the public GCS bucket `dx-scin-public-data`, converts
+the CSV data into our `metadata.json` format, and saves images to `data/raw/scin/images/`.
+
 #### Configure and Start
 
 ```bash
-# 6. Set MODEL_BACKEND=local in .env
+# 9. Set MODEL_BACKEND=local in .env
 #    Edit .env and change: MODEL_BACKEND=local
 
-# 7. Install ML + voice dependencies (if not already)
+# 10. Install ML + voice dependencies (if not already)
 uv pip install -e ".[ml,voice]"
 
-# 8. Start the server
+# 11. Index SCIN embeddings into the vector store
+bash scripts/index_embeddings.sh
+
+# 12. Start the server
 bash scripts/start_server.sh development
 
-# 9. Verify with integration tests
+# 13. Verify with integration tests
 MODEL_BACKEND=local uv run pytest tests/integration/test_local_models.py -v
 ```
 
@@ -104,6 +132,16 @@ MODEL_BACKEND=local uv run pytest tests/integration/test_local_models.py -v
 | `huggingface-cli: command not found` | CLI not installed | Run `pip install --user huggingface-cli` or `uv tool install huggingface-cli` |
 | `403 Forbidden` | Token lacks read scope | Generate a new token with `Read` permission at https://huggingface.co/settings/tokens |
 | `Repository not found` | Model ID typo or model removed | Verify `LLM__MEDGEMMA_MODEL_ID` in `.env` matches a valid HF repo |
+
+#### Troubleshooting SCIN Download
+
+| Error | Cause | Fix |
+|---|---|---|
+| `ModuleNotFoundError: google.cloud.storage` | GCS client not installed | Run `uv pip install google-cloud-storage` |
+| `DefaultCredentialsError` | Not authenticated with Google Cloud | Run `gcloud auth application-default login` |
+| `gcloud: command not found` | Google Cloud SDK not installed | Install from https://cloud.google.com/sdk/docs/install |
+| `403 Forbidden` on bucket | Bucket access issue | The bucket `dx-scin-public-data` is public; check network/proxy settings |
+| `metadata.json` missing after download | Script failed mid-download | Re-run `bash scripts/download_scin.sh`; it's idempotent |
 
 ### Docker
 ```bash

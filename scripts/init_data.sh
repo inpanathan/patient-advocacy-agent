@@ -50,14 +50,15 @@ if [ "$MOCK_MODE" = true ]; then
 
 else
     echo ""
-    echo "To download the real SCIN database:"
-    echo "  1. Obtain access from Harvard Dataverse"
-    echo "  2. Download and extract to data/raw/scin/"
-    echo "  3. Ensure metadata.json exists at data/raw/scin/metadata.json"
-    echo "  4. Ensure images are at data/raw/scin/images/"
+    echo "To download the real SCIN dataset from Google Cloud Storage:"
+    echo "  bash scripts/download_scin.sh"
+    echo ""
+    echo "Prerequisites:"
+    echo "  uv pip install google-cloud-storage"
+    echo "  gcloud auth application-default login"
     echo ""
     echo "For development with mock data, run:"
-    echo "  ./scripts/init_data.sh --mock"
+    echo "  bash scripts/init_data.sh --mock"
 fi
 
 echo ""
