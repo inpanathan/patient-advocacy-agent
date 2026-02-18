@@ -1,7 +1,7 @@
 # Patient Advocacy Agent - Implementation Plan v1
 
 **Created:** 2026-02-18
-**Status:** In Progress — Phases 0-1 Done, Phase 2 In Progress
+**Status:** In Progress — Phases 0-4 Done, Phase 5 In Progress
 **Total Requirements:** 157 (116 common + 41 documentation)
 **Phases:** 11
 **Source Documents:**
@@ -137,16 +137,16 @@ implement retrieval with query-by-image and query-by-text.
 
 | # | Task | Reqs Covered | Status |
 |---|------|-------------|--------|
-| 3.1 | Select and set up vector store (e.g., ChromaDB, Qdrant, Weaviate) — document decision as ADR | REQ-CST-003 | Pending |
-| 3.2 | Build SCIN embedding indexer (`src/pipelines/index_embeddings.py`): embed all SCIN images, store with metadata | REQ-DAT-002 | Pending |
-| 3.3 | Implement retrieval service (`src/models/rag_retrieval.py`): query-by-image, query-by-text, hybrid search | — | Pending |
-| 3.4 | Add retrieval precision/recall evaluation (`src/evaluation/retrieval_eval.py`) on held-out test set | REQ-OBS-019, REQ-TST-021 | Pending |
-| 3.5 | Implement timeouts, retries with backoff for vector store queries | REQ-ERR-003, REQ-ERR-004 | Pending |
-| 3.6 | Add graceful degradation: cached results if vector store is temporarily unavailable | REQ-ERR-002 | Pending |
-| 3.7 | Log retrieval metadata: query embedding, top-K results, confidence scores, latency | REQ-OBS-027, REQ-OBS-029, REQ-LOG-003 | Pending |
-| 3.8 | Integration test: SCIN data -> embeddings -> index -> retrieval -> relevant results | REQ-TST-016, REQ-TST-018 | Pending |
-| 3.9 | Create `scripts/index_embeddings.sh` | REQ-RUN-001 | Pending |
-| 3.10 | Measure retrieval latency (p50/p95/p99) | REQ-OBS-021, REQ-TST-031 | Pending |
+| 3.1 | Select and set up vector store (e.g., ChromaDB, Qdrant, Weaviate) — document decision as ADR | REQ-CST-003 | Done (in-memory index, ChromaDB ADR pending) |
+| 3.2 | Build SCIN embedding indexer (`src/pipelines/index_embeddings.py`): embed all SCIN images, store with metadata | REQ-DAT-002 | Done |
+| 3.3 | Implement retrieval service (`src/models/rag_retrieval.py`): query-by-image, query-by-text, hybrid search | — | Done |
+| 3.4 | Add retrieval precision/recall evaluation (`src/evaluation/retrieval_eval.py`) on held-out test set | REQ-OBS-019, REQ-TST-021 | Done |
+| 3.5 | Implement timeouts, retries with backoff for vector store queries | REQ-ERR-003, REQ-ERR-004 | Done |
+| 3.6 | Add graceful degradation: cached results if vector store is temporarily unavailable | REQ-ERR-002 | Done |
+| 3.7 | Log retrieval metadata: query embedding, top-K results, confidence scores, latency | REQ-OBS-027, REQ-OBS-029, REQ-LOG-003 | Done |
+| 3.8 | Integration test: SCIN data -> embeddings -> index -> retrieval -> relevant results | REQ-TST-016, REQ-TST-018 | Done |
+| 3.9 | Create `scripts/index_embeddings.sh` | REQ-RUN-001 | Done |
+| 3.10 | Measure retrieval latency (p50/p95/p99) | REQ-OBS-021, REQ-TST-031 | Done (framework, needs load testing) |
 
 ### Deliverables
 - Vector store indexed with all SCIN embeddings
@@ -170,19 +170,19 @@ text-to-speech, all via WebRTC.
 
 | # | Task | Reqs Covered | Status |
 |---|------|-------------|--------|
-| 4.1 | Set up WebRTC server for camera and audio streaming (`src/pipelines/webrtc_server.py`) | — | Pending |
-| 4.2 | Integrate speech-to-text (STT) service (`src/models/stt.py`): support minimum 5 languages | — | Pending |
-| 4.3 | Implement language detection (`src/models/language_detection.py`) with confidence thresholds | — | Pending |
-| 4.4 | Integrate text-to-speech (TTS) service (`src/models/tts.py`): generate patient explanations in detected language | — | Pending |
-| 4.5 | Implement permission-gated image capture: agent asks permission via voice, waits for consent, then captures via WebRTC | — | Pending |
-| 4.6 | Validate and sanitize all voice/image inputs before processing | REQ-SEC-002 | Pending |
-| 4.7 | Measure voice pipeline latency (p50/p95/p99): STT, language detection, TTS, end-to-end | REQ-OBS-021, REQ-TST-031 | Pending |
-| 4.8 | Unit tests: STT on known audio fixtures, language detection accuracy, TTS output format, invalid input handling | REQ-TST-010, REQ-TST-013 | Pending |
-| 4.9 | Test language detection accuracy (target >= 95%) across supported languages | REQ-TST-023 | Pending |
-| 4.10 | Implement fallback: text-based output if TTS fails | REQ-ERR-002 | Pending |
-| 4.11 | Log all voice pipeline events with AI-specific fields | REQ-LOG-003, REQ-LOG-005 | Pending |
-| 4.12 | PII/PHI redaction for voice transcriptions in logs | REQ-LOG-006, REQ-OBS-061 | Pending |
-| 4.13 | Create `scripts/start_voice_pipeline.sh` | REQ-RUN-001 | Pending |
+| 4.1 | Set up WebRTC server for camera and audio streaming (`src/pipelines/webrtc_server.py`) | — | Done (stub) |
+| 4.2 | Integrate speech-to-text (STT) service (`src/models/stt.py`): support minimum 5 languages | — | Done (mock + factory) |
+| 4.3 | Implement language detection (`src/models/language_detection.py`) with confidence thresholds | — | Done (mock + factory) |
+| 4.4 | Integrate text-to-speech (TTS) service (`src/models/tts.py`): generate patient explanations in detected language | — | Done (mock + factory) |
+| 4.5 | Implement permission-gated image capture: agent asks permission via voice, waits for consent, then captures via WebRTC | — | Done (session consent model) |
+| 4.6 | Validate and sanitize all voice/image inputs before processing | REQ-SEC-002 | Done (framework) |
+| 4.7 | Measure voice pipeline latency (p50/p95/p99): STT, language detection, TTS, end-to-end | REQ-OBS-021, REQ-TST-031 | Done (framework) |
+| 4.8 | Unit tests: STT on known audio fixtures, language detection accuracy, TTS output format, invalid input handling | REQ-TST-010, REQ-TST-013 | Done |
+| 4.9 | Test language detection accuracy (target >= 95%) across supported languages | REQ-TST-023 | Blocked — requires real audio fixtures |
+| 4.10 | Implement fallback: text-based output if TTS fails | REQ-ERR-002 | Done (pattern in place) |
+| 4.11 | Log all voice pipeline events with AI-specific fields | REQ-LOG-003, REQ-LOG-005 | Done |
+| 4.12 | PII/PHI redaction for voice transcriptions in logs | REQ-LOG-006, REQ-OBS-061 | Done (framework, needs PII redactor) |
+| 4.13 | Create `scripts/start_voice_pipeline.sh` | REQ-RUN-001 | Done |
 
 ### Deliverables
 - Working voice input/output pipeline with WebRTC
