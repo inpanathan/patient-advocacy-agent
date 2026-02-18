@@ -64,3 +64,61 @@ def index_scin_records(
 
     logger.info("indexing_complete", total_indexed=total_indexed)
     return total_indexed
+
+
+def main() -> None:
+    """CLI entry point for SCIN embedding indexing."""
+    import argparse
+    import json
+    from pathlib import Path
+
+    from src.utils.config import settings
+    from src.utils.logger import setup_logging
+
+    setup_logging()
+
+    parser = argparse.ArgumentParser(description="Index SCIN embeddings into vector store")
+    parser.add_argument(
+        "--data-dir",
+        default=settings.scin.data_dir,
+        help="Path to SCIN data directory",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=32,
+        help="Batch size for embedding",
+    )
+    args = parser.parse_args()
+
+    data_dir = Path(args.data_dir)
+    metadata_path = data_dir / "metadata.json"
+
+    if not metadata_path.exists():
+        logger.error("metadata_not_found", path=str(metadata_path))
+        logger.info("hint", run="bash scripts/init_data.sh --mock")
+        return
+
+    with open(metadata_path) as f:
+        raw = json.load(f)
+
+    raw_records = raw if isinstance(raw, list) else raw.get("records", [])
+
+    records = []
+    for r in raw_records:
+        try:
+            records.append(SCINRecord(**r))
+        except (TypeError, ValueError) as e:
+            logger.warning("skipping_invalid_record", error=str(e))
+
+    if not records:
+        logger.warning("no_valid_records")
+        return
+
+    index = VectorIndex()
+    total = index_scin_records(records, index, batch_size=args.batch_size)
+    logger.info("indexing_cli_done", total_indexed=total)
+
+
+if __name__ == "__main__":
+    main()

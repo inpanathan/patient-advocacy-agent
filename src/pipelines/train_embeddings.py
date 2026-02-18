@@ -170,3 +170,70 @@ def run_training(
     )
 
     return metrics
+
+
+def main() -> None:
+    """CLI entry point for embedding fine-tuning."""
+    import argparse
+    import json
+
+    from src.utils.logger import setup_logging
+
+    setup_logging()
+
+    parser = argparse.ArgumentParser(description="SigLIP-2 embedding fine-tuning")
+    parser.add_argument(
+        "--config",
+        default="configs/experiments/default.yaml",
+        help="Path to training config YAML",
+    )
+    parser.add_argument(
+        "--data-dir",
+        default="data/raw/scin",
+        help="Path to SCIN data directory",
+    )
+    args = parser.parse_args()
+
+    # Load training records
+    from pathlib import Path
+
+    data_dir = Path(args.data_dir)
+    metadata_path = data_dir / "metadata.json"
+
+    if metadata_path.exists():
+        with open(metadata_path) as f:
+            records = json.load(f)
+        if isinstance(records, dict):
+            records = records.get("records", [])
+    else:
+        logger.warning("no_metadata_found", path=str(metadata_path))
+        logger.info("using_mock_data", hint="Run: bash scripts/init_data.sh --mock")
+        records = [
+            {"image_path": f"data/raw/scin/images/00{i}.jpg", "diagnosis": f"L{20 + i % 5}.0"}
+            for i in range(1, 7)
+        ]
+
+    # Load config overrides if YAML exists
+    config = TrainingConfig()
+    config_path = Path(args.config)
+    if config_path.exists():
+        import yaml  # type: ignore[import-untyped]
+
+        with open(config_path) as f:
+            overrides = yaml.safe_load(f) or {}
+        for k, v in overrides.items():
+            if hasattr(config, k):
+                setattr(config, k, v)
+
+    logger.info("training_cli_start", records=len(records), config=str(config_path))
+    metrics = run_training(records, config)
+    logger.info(
+        "training_cli_done",
+        epochs=metrics.epoch,
+        final_loss=f"{metrics.loss:.6f}",
+        best_loss=f"{metrics.best_loss:.6f}",
+    )
+
+
+if __name__ == "__main__":
+    main()
