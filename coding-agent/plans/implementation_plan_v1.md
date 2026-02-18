@@ -1,7 +1,7 @@
 # Patient Advocacy Agent - Implementation Plan v1
 
 **Created:** 2026-02-18
-**Status:** In Progress — Phases 0-5 Done, Phase 6 In Progress
+**Status:** In Progress — Phases 0-6 Done, Phase 7 In Progress
 **Total Requirements:** 157 (116 common + 41 documentation)
 **Phases:** 11
 **Source Documents:**
@@ -251,20 +251,20 @@ deploy as a web application (not Streamlit).
 
 | # | Task | Reqs Covered | Status |
 |---|------|-------------|--------|
-| 6.1 | Build web application server (FastAPI / equivalent) with WebRTC integration | — | Pending |
-| 6.2 | Implement end-to-end flow: patient speaks -> language detected -> interview loop -> permission-gated image -> RAG + MedGemma -> SOAP -> physician report + patient explanation (voice) | REQ-TST-020 | Pending |
-| 6.3 | Implement session management (`src/utils/session.py`): patient session IDs, state tracking | — | Pending |
-| 6.4 | Implement case history delivery to remote healthcare facility | — | Pending |
-| 6.5 | Apply rate limiting and throttling to public-facing endpoints | REQ-SEC-007 | Pending |
-| 6.6 | Enforce least-privilege access controls for APIs and data stores | REQ-SEC-004 | Pending |
-| 6.7 | Implement distributed tracing across all services | REQ-OBS-035 - REQ-OBS-038, REQ-OBS-042 | Pending |
-| 6.8 | Collect infrastructure metrics (CPU, GPU, memory, disk, network) per component | REQ-OBS-039 | Pending |
-| 6.9 | End-to-end happy-path integration test | REQ-TST-020 | Pending |
-| 6.10 | End-to-end error-path tests (errors surface with clear messages and codes) | REQ-TST-019 | Pending |
-| 6.11 | Ensure all file paths and configs resolve correctly in CI | REQ-TST-017 | Pending |
-| 6.12 | Generate OpenAPI/Swagger documentation for all endpoints | REQ-DOC-005 | Pending |
-| 6.13 | Create `scripts/start_server.sh` | REQ-RUN-001 | Pending |
-| 6.14 | Update `docs/app_cheatsheet.md` with all URLs, endpoints, operational details | REQ-RUN-002, REQ-RUN-003 | Pending |
+| 6.1 | Build web application server (FastAPI / equivalent) with WebRTC integration | — | Done |
+| 6.2 | Implement end-to-end flow: patient speaks -> language detected -> interview loop -> permission-gated image -> RAG + MedGemma -> SOAP -> physician report + patient explanation (voice) | REQ-TST-020 | Done |
+| 6.3 | Implement session management (`src/utils/session.py`): patient session IDs, state tracking | — | Done |
+| 6.4 | Implement case history delivery to remote healthcare facility | — | Done |
+| 6.5 | Apply rate limiting and throttling to public-facing endpoints | REQ-SEC-007 | Done |
+| 6.6 | Enforce least-privilege access controls for APIs and data stores | REQ-SEC-004 | Done |
+| 6.7 | Implement distributed tracing across all services | REQ-OBS-035 - REQ-OBS-038, REQ-OBS-042 | Done |
+| 6.8 | Collect infrastructure metrics (CPU, GPU, memory, disk, network) per component | REQ-OBS-039 | Done |
+| 6.9 | End-to-end happy-path integration test | REQ-TST-020 | Done |
+| 6.10 | End-to-end error-path tests (errors surface with clear messages and codes) | REQ-TST-019 | Done |
+| 6.11 | Ensure all file paths and configs resolve correctly in CI | REQ-TST-017 | Done |
+| 6.12 | Generate OpenAPI/Swagger documentation for all endpoints | REQ-DOC-005 | Done |
+| 6.13 | Create `scripts/start_server.sh` | REQ-RUN-001 | Done |
+| 6.14 | Update `docs/app_cheatsheet.md` with all URLs, endpoints, operational details | REQ-RUN-002, REQ-RUN-003 | Done |
 
 ### Deliverables
 - Fully integrated web application with voice-only patient interface
