@@ -205,6 +205,10 @@ def main() -> None:
             records = json.load(f)
         if isinstance(records, dict):
             records = records.get("records", [])
+        # Resolve relative image paths against data_dir
+        for r in records:
+            if "image_path" in r:
+                r["image_path"] = str(data_dir / r["image_path"])
     else:
         logger.warning("no_metadata_found", path=str(metadata_path))
         logger.info("using_mock_data", hint="Run: bash scripts/init_data.sh --mock")

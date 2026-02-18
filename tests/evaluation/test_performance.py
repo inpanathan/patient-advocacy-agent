@@ -33,20 +33,20 @@ class TestEmbeddingPerformance:
         start = time.perf_counter()
         model.embed_text("itchy rash on forearm")
         elapsed_ms = (time.perf_counter() - start) * 1000
-        assert elapsed_ms < self.MAX_SINGLE_EMBED_MS, (
-            f"Single embedding took {elapsed_ms:.1f}ms > {self.MAX_SINGLE_EMBED_MS}ms"
-        )
+        assert (
+            elapsed_ms < self.MAX_SINGLE_EMBED_MS
+        ), f"Single embedding took {elapsed_ms:.1f}ms > {self.MAX_SINGLE_EMBED_MS}ms"
 
     def test_batch_embedding_latency(self):
         """Batch of 50 text embeddings completes within threshold."""
         model = get_embedding_model()
-        texts = [f"test condition {i}" for i in range(50)]
+        items = [{"text": f"test condition {i}"} for i in range(50)]
         start = time.perf_counter()
-        model.embed_batch(texts)
+        model.embed_batch(items)
         elapsed_ms = (time.perf_counter() - start) * 1000
-        assert elapsed_ms < self.MAX_BATCH_EMBED_MS, (
-            f"Batch embedding took {elapsed_ms:.1f}ms > {self.MAX_BATCH_EMBED_MS}ms"
-        )
+        assert (
+            elapsed_ms < self.MAX_BATCH_EMBED_MS
+        ), f"Batch embedding took {elapsed_ms:.1f}ms > {self.MAX_BATCH_EMBED_MS}ms"
 
     def test_normalization_performance(self):
         """Normalization of 1000 vectors completes quickly."""
@@ -72,20 +72,22 @@ class TestRetrievalPerformance:
         meta_list = []
         for i in range(1000):
             emb_list.append(model.embed_text(f"condition {i}"))
-            meta_list.append({
-                "record_id": f"rec_{i}",
-                "diagnosis": f"diag_{i}",
-                "icd_code": f"L{i % 99:02d}.0",
-            })
+            meta_list.append(
+                {
+                    "record_id": f"rec_{i}",
+                    "diagnosis": f"diag_{i}",
+                    "icd_code": f"L{i % 99:02d}.0",
+                }
+            )
         index.add(np.array(emb_list, dtype=np.float32), meta_list)
 
         query = model.embed_text("eczema on arm")
         start = time.perf_counter()
         results = index.search(query, top_k=10)
         elapsed_ms = (time.perf_counter() - start) * 1000
-        assert elapsed_ms < self.MAX_SEARCH_MS, (
-            f"Search took {elapsed_ms:.1f}ms > {self.MAX_SEARCH_MS}ms"
-        )
+        assert (
+            elapsed_ms < self.MAX_SEARCH_MS
+        ), f"Search took {elapsed_ms:.1f}ms > {self.MAX_SEARCH_MS}ms"
         assert len(results) == 10
 
 
@@ -113,9 +115,7 @@ class TestInterviewPerformance:
         stt = STTResult(text="Hi", language="en", confidence=0.9, duration_ms=0)
         await agent.process_utterance(session, stt)
 
-        stt2 = STTResult(
-            text="I have a rash", language="en", confidence=0.9, duration_ms=0
-        )
+        stt2 = STTResult(text="I have a rash", language="en", confidence=0.9, duration_ms=0)
         start = time.perf_counter()
         await agent.process_utterance(session, stt2)
         elapsed_ms = (time.perf_counter() - start) * 1000
@@ -163,6 +163,4 @@ class TestSessionScalability:
             store.create()
         elapsed_ms = (time.perf_counter() - start) * 1000
         # 1000 sessions should take < 1 second
-        assert elapsed_ms < 1000, (
-            f"1000 session creations took {elapsed_ms:.1f}ms"
-        )
+        assert elapsed_ms < 1000, f"1000 session creations took {elapsed_ms:.1f}ms"

@@ -95,4 +95,4 @@ class TestYamlConfigLoading:
 
         result = _load_yaml_config("dev")
         assert result.get("app_env") == "dev"
-        assert result.get("use_mocks") is True
+        assert result.get("use_mocks") is False

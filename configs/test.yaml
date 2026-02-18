@@ -1,0 +1,25 @@
+# Test environment configuration
+# Uses mock models so tests run fast without GPU or real weights.
+
+app_env: test
+app_debug: true
+use_mocks: true
+model_backend: mock
+
+logging:
+  level: DEBUG
+  format: console
+
+server:
+  host: "127.0.0.1"
+  port: 8000
+  reload: false
+  workers: 1
+
+llm:
+  temperature: 0.3
+  timeout_seconds: 60
+
+vector_store:
+  persist_dir: data/chroma
+  top_k: 10

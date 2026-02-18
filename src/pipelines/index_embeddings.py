@@ -21,6 +21,7 @@ def index_scin_records(
     records: list[SCINRecord],
     index: VectorIndex,
     batch_size: int = 32,
+    data_dir: str = "",
 ) -> int:
     """Embed and index all SCIN records.
 
@@ -28,16 +29,20 @@ def index_scin_records(
         records: List of validated SCIN records.
         index: Vector index to add embeddings to.
         batch_size: Number of records to process per batch.
+        data_dir: Base directory for resolving relative image paths.
 
     Returns:
         Number of records indexed.
     """
+    from pathlib import Path
+
+    base = Path(data_dir) if data_dir else Path()
     model = get_embedding_model()
     total_indexed = 0
 
     for start in range(0, len(records), batch_size):
         batch = records[start : start + batch_size]
-        items = [{"image_path": r.image_path} for r in batch]
+        items = [{"image_path": str(base / r.image_path)} for r in batch]
         metadata = [
             {
                 "record_id": r.record_id,
@@ -116,7 +121,7 @@ def main() -> None:
         return
 
     index = VectorIndex()
-    total = index_scin_records(records, index, batch_size=args.batch_size)
+    total = index_scin_records(records, index, batch_size=args.batch_size, data_dir=str(data_dir))
     logger.info("indexing_cli_done", total_indexed=total)
 
 

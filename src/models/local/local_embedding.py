@@ -60,6 +60,19 @@ class LocalEmbeddingModel:
         """Embedding vector dimensionality."""
         return self._dimension
 
+    @staticmethod
+    def _to_tensor(outputs: Any) -> torch.Tensor:
+        """Extract tensor from model outputs (handles both raw tensors and wrapper objects)."""
+        if isinstance(outputs, torch.Tensor):
+            return outputs
+        # BaseModelOutputWithPooling or similar — use pooler_output or last_hidden_state
+        if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
+            return outputs.pooler_output
+        if hasattr(outputs, "last_hidden_state"):
+            return outputs.last_hidden_state[:, 0]
+        msg = f"Unexpected model output type: {type(outputs)}"
+        raise TypeError(msg)
+
     def _normalize(self, vec: NDArray[np.float32]) -> NDArray[np.float32]:
         """L2-normalize embedding vectors."""
         norms = np.linalg.norm(vec, axis=-1, keepdims=True)
@@ -77,7 +90,8 @@ class LocalEmbeddingModel:
         with torch.no_grad():
             outputs = self._model.get_image_features(**inputs)
 
-        embedding = outputs.cpu().numpy().astype(np.float32).squeeze(0)
+        tensor = self._to_tensor(outputs)
+        embedding = tensor.cpu().numpy().astype(np.float32).squeeze(0)
         result = self._normalize(embedding)
 
         elapsed = int((time.monotonic() - t0) * 1000)
@@ -88,14 +102,13 @@ class LocalEmbeddingModel:
         """Generate normalized embedding from text."""
         t0 = time.monotonic()
 
-        inputs = self._processor(text=text, return_tensors="pt", padding=True).to(
-            self._device
-        )
+        inputs = self._processor(text=text, return_tensors="pt", padding=True).to(self._device)
 
         with torch.no_grad():
             outputs = self._model.get_text_features(**inputs)
 
-        embedding = outputs.cpu().numpy().astype(np.float32).squeeze(0)
+        tensor = self._to_tensor(outputs)
+        embedding = tensor.cpu().numpy().astype(np.float32).squeeze(0)
         result = self._normalize(embedding)
 
         elapsed = int((time.monotonic() - t0) * 1000)
