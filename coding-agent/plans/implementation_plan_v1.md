@@ -1,7 +1,7 @@
 # Patient Advocacy Agent - Implementation Plan v1
 
 **Created:** 2026-02-18
-**Status:** In Progress — Phases 0-6 Done, Phase 7 In Progress
+**Status:** In Progress — Phases 0-7 Done, Phase 8 In Progress
 **Total Requirements:** 157 (116 common + 41 documentation)
 **Phases:** 11
 **Source Documents:**
@@ -288,21 +288,21 @@ performance/load, bias/fairness, safety, and regression tests.
 
 | # | Task | Reqs Covered | Status |
 |---|------|-------------|--------|
-| 7.1 | Complete unit test coverage: all preprocessing, feature engineering, serving code, default/fallback behavior | REQ-TST-010 - REQ-TST-015 | Pending |
-| 7.2 | Complete integration tests: embedding pipeline, inference pipeline | REQ-TST-016, REQ-TST-018 | Pending |
-| 7.3 | Model evaluation tests: define metric thresholds, run against baseline | REQ-TST-021 - REQ-TST-025 | Pending |
-| 7.4 | GenAI regression tests: re-run golden prompt suite on each model/prompt change | REQ-TST-030 | Pending |
-| 7.5 | Performance/load testing: p50/p95/p99 latency, throughput, scaling, degradation | REQ-TST-031 - REQ-TST-035 | Pending |
-| 7.6 | Bias/fairness tests: metrics across Fitzpatrick types, languages, geographies | REQ-TST-036 - REQ-TST-039 | Pending |
-| 7.7 | Regulatory/compliance tests: never prescribes, never claims doctor, always gets permission, always includes disclaimer | REQ-TST-050 | Pending |
-| 7.8 | Domain-specific acceptance tests: ICD accuracy top-20, SOAP completeness, 100% escalation rate, de-escalation scenarios | REQ-TST-048 | Pending |
-| 7.9 | Set up regression CI gate: fail if new versions regress beyond tolerance | REQ-TST-040 | Pending |
-| 7.10 | Run unit + integration tests on every commit/PR | REQ-TST-041 | Pending |
-| 7.11 | Set up scheduled (nightly/weekly) evaluation pipeline for model quality, safety | REQ-TST-042, REQ-CIC-002 | Pending |
-| 7.12 | Document promotion criteria: required tests and thresholds for staging -> production | REQ-TST-043 | Pending |
-| 7.13 | Record library versions, configs, artifacts for failed runs | REQ-TST-045 | Pending |
-| 7.14 | Maintain test catalog with risk mapping | REQ-TST-046 | Pending |
-| 7.15 | Link tests to runbooks for debugging common failures | REQ-TST-047 | Pending |
+| 7.1 | Complete unit test coverage: all preprocessing, feature engineering, serving code, default/fallback behavior | REQ-TST-010 - REQ-TST-015 | Done |
+| 7.2 | Complete integration tests: embedding pipeline, inference pipeline | REQ-TST-016, REQ-TST-018 | Done |
+| 7.3 | Model evaluation tests: define metric thresholds, run against baseline | REQ-TST-021 - REQ-TST-025 | Done |
+| 7.4 | GenAI regression tests: re-run golden prompt suite on each model/prompt change | REQ-TST-030 | Done |
+| 7.5 | Performance/load testing: p50/p95/p99 latency, throughput, scaling, degradation | REQ-TST-031 - REQ-TST-035 | Done |
+| 7.6 | Bias/fairness tests: metrics across Fitzpatrick types, languages, geographies | REQ-TST-036 - REQ-TST-039 | Done |
+| 7.7 | Regulatory/compliance tests: never prescribes, never claims doctor, always gets permission, always includes disclaimer | REQ-TST-050 | Done |
+| 7.8 | Domain-specific acceptance tests: ICD accuracy top-20, SOAP completeness, 100% escalation rate, de-escalation scenarios | REQ-TST-048 | Done |
+| 7.9 | Set up regression CI gate: fail if new versions regress beyond tolerance | REQ-TST-040 | Done |
+| 7.10 | Run unit + integration tests on every commit/PR | REQ-TST-041 | Done |
+| 7.11 | Set up scheduled (nightly/weekly) evaluation pipeline for model quality, safety | REQ-TST-042, REQ-CIC-002 | Done |
+| 7.12 | Document promotion criteria: required tests and thresholds for staging -> production | REQ-TST-043 | Done |
+| 7.13 | Record library versions, configs, artifacts for failed runs | REQ-TST-045 | Done |
+| 7.14 | Maintain test catalog with risk mapping | REQ-TST-046 | Done |
+| 7.15 | Link tests to runbooks for debugging common failures | REQ-TST-047 | Done |
 
 ### Deliverables
 - Full test suite with > 80% code coverage
