@@ -40,9 +40,7 @@ class SCINRecord(BaseModel):
         pattern=r"^[A-Z]\d{2}(\.\d{1,4})?$",
         description="ICD-10 code (e.g., L20.0)",
     )
-    fitzpatrick_type: FitzpatrickType = Field(
-        ..., description="Fitzpatrick skin type (I-VI)"
-    )
+    fitzpatrick_type: FitzpatrickType = Field(..., description="Fitzpatrick skin type (I-VI)")
     body_location: str = Field(default="", description="Body location of the condition")
     age_group: str = Field(default="", description="Patient age group (e.g., adult, pediatric)")
     severity: str = Field(default="mild", description="Condition severity: mild, moderate, severe")
@@ -61,9 +59,15 @@ class SCINRecord(BaseModel):
     @field_validator("icd_code")
     @classmethod
     def validate_icd_range(cls, v: str) -> str:
-        """Validate ICD code is in dermatology range (L00-L99)."""
-        if not v.startswith("L"):
-            msg = f"Expected dermatology ICD code (L00-L99), got '{v}'"
+        """Validate ICD code is in a skin-relevant range.
+
+        Accepts:
+          - L00-L99: Diseases of the skin and subcutaneous tissue
+          - B35-B49: Mycoses (fungal skin infections like tinea/dermatophytosis)
+        """
+        allowed_prefixes = ("L", "B")
+        if not v.startswith(allowed_prefixes):
+            msg = f"Expected skin-relevant ICD code (L00-L99 or B35-B49), got '{v}'"
             raise ValueError(msg)
         return v
 

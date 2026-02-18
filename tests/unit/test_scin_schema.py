@@ -33,10 +33,15 @@ class TestSCINRecord:
         with pytest.raises(ValueError):
             SCINRecord(**self._valid_record(icd_code="INVALID"))
 
-    def test_non_dermatology_icd_code(self):
-        """Non-L ICD codes are rejected."""
-        with pytest.raises(ValueError, match="Expected dermatology ICD code"):
+    def test_non_skin_relevant_icd_code(self):
+        """Non-skin-relevant ICD codes are rejected."""
+        with pytest.raises(ValueError, match="Expected skin-relevant ICD code"):
             SCINRecord(**self._valid_record(icd_code="A01.0"))
+
+    def test_fungal_skin_icd_code_accepted(self):
+        """B35.x (fungal skin infection) codes are accepted."""
+        record = SCINRecord(**self._valid_record(icd_code="B35.0"))
+        assert record.icd_code == "B35.0"
 
     def test_invalid_severity(self):
         """Invalid severity values are rejected."""
