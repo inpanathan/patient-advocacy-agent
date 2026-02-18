@@ -15,7 +15,7 @@ class TestSetupLogging:
         setup_logging(level="INFO", fmt="json")
         root = logging.getLogger()
         assert root.level == logging.INFO
-        assert len(root.handlers) == 1
+        assert len(root.handlers) == 2  # StreamHandler + BufferHandler
 
     def test_setup_console_logging(self):
         """Console logging mode configures without error."""

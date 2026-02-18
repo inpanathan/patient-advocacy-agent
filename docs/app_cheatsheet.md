@@ -12,6 +12,27 @@
 | `http://localhost:8000/docs` | Swagger/OpenAPI docs |
 | `http://localhost:8000/redoc` | ReDoc API docs |
 
+### Monitoring Dashboard
+| URL | Description |
+|---|---|
+| `http://localhost:8000/dashboard` | Overview dashboard (health, alerts, vector space, safety, bias) |
+| `http://localhost:8000/dashboard/logs` | Log Viewer (search/filter structured logs) |
+| `http://localhost:8000/dashboard/metrics` | Metrics Explorer (time-series, API calls, errors) |
+
+### Dashboard API Endpoints (prefix: `/api/v1/dashboard`)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/health-overview` | Status, uptime, sessions, counters |
+| `GET` | `/performance` | Latency percentiles, confidence, ICD codes |
+| `GET` | `/vector-space?max_points=500` | 2D PCA scatter data |
+| `GET` | `/safety` | Safety pass rate, violations, escalation |
+| `GET` | `/bias` | Metrics by Fitzpatrick type and language |
+| `GET` | `/alerts` | Active alerts with runbook URLs |
+| `GET` | `/audit-trail?limit=50` | Recent audit records |
+| `GET` | `/logs?level=&event=&search=&limit=200` | Filtered log records |
+| `GET` | `/time-series?metric=&bucket=60` | Time-bucketed metric data |
+| `GET` | `/request-stats` | API call counts, errors, latency by path |
+
 ### API Endpoints (prefix: `/api/v1`)
 | Method | Endpoint | Description |
 |---|---|---|

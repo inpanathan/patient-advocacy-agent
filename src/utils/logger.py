@@ -60,6 +60,13 @@ def setup_logging(level: str = "INFO", fmt: str = "json") -> None:
     root_logger.addHandler(handler)
     root_logger.setLevel(level.upper())
 
+    # Wire log buffer for dashboard log viewer
+    from src.observability.log_buffer import BufferHandler, get_log_buffer
+
+    buffer_handler = BufferHandler(get_log_buffer())
+    buffer_handler.setFormatter(formatter)
+    root_logger.addHandler(buffer_handler)
+
     # Quiet noisy third-party loggers
     for name in ("uvicorn.access", "httpx", "httpcore"):
         logging.getLogger(name).setLevel(logging.WARNING)

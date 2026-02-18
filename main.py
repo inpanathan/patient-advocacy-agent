@@ -5,6 +5,7 @@ Starts the FastAPI server with structured logging and validated configuration.
 
 from __future__ import annotations
 
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -51,6 +52,24 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: F821
     app.state.rag_retriever = retriever  # type: ignore[attr-defined]
     app.state.vector_index = index  # type: ignore[attr-defined]
 
+    # Dashboard observability singletons
+    from src.api.routes import _session_store
+    from src.observability.alerts import AlertEvaluator
+    from src.observability.audit import AuditTrail
+    from src.observability.dashboard_aggregator import DashboardAggregator, DashboardState
+    from src.observability.safety_evaluator import SafetyEvaluator
+
+    dashboard_state = DashboardState(
+        start_time=time.monotonic(),
+        session_store=_session_store,
+        alert_evaluator=AlertEvaluator(),
+        audit_trail=AuditTrail(),
+        safety_evaluator=SafetyEvaluator(),
+        vector_index=index,
+    )
+    app.state.dashboard_aggregator = dashboard_state  # type: ignore[attr-defined]
+    app.state.dashboard_aggregator = DashboardAggregator(dashboard_state)  # type: ignore[attr-defined]
+
     yield
 
     logger.info("app_shutdown")
@@ -89,6 +108,37 @@ def create_app():
 
     # Include API routes
     app.include_router(router, prefix="/api/v1")
+
+    # Dashboard API + pages
+    from src.api.dashboard_page import router as dashboard_page_router
+    from src.api.dashboard_routes import router as dashboard_api_router
+    from src.api.logs_page import router as logs_page_router
+    from src.api.metrics_page import router as metrics_page_router
+
+    app.include_router(dashboard_api_router, prefix="/api/v1/dashboard")
+    app.include_router(dashboard_page_router)
+    app.include_router(logs_page_router)
+    app.include_router(metrics_page_router)
+
+    # Request tracking middleware
+    from src.observability.metrics import get_metrics_collector
+
+    @app.middleware("http")
+    async def track_requests(request: Request, call_next):  # type: ignore[no-untyped-def]
+        start = time.monotonic()
+        response = await call_next(request)
+        elapsed = (time.monotonic() - start) * 1000
+        collector = get_metrics_collector()
+        path = request.url.path
+        collector.increment("request_count")
+        collector.observe_latency(
+            "request_latency",
+            elapsed,
+            labels={"method": request.method, "path": path, "status": str(response.status_code)},
+        )
+        if response.status_code >= 400:
+            collector.increment("request_errors")
+        return response
 
     @app.get("/health")
     async def health_check(request: Request):
