@@ -27,11 +27,83 @@
 ### Local Development
 ```bash
 # One-time setup
-./scripts/setup.sh
+bash scripts/setup.sh
 
 # Start server
-./scripts/start_server.sh development
+bash scripts/start_server.sh development
 ```
+
+### Local Mode (GPU — real models)
+
+Running with `MODEL_BACKEND=local` requires downloading gated and large model
+weights before first start. Follow these steps in order.
+
+#### Prerequisites
+
+```bash
+# 1. Install the Hugging Face CLI (if not already installed)
+pip install --user huggingface-cli
+# Or via uv:
+uv tool install huggingface-cli
+
+# Verify installation
+huggingface-cli --version
+```
+
+#### Hugging Face Authentication
+
+MedGemma 4B is a **gated model**. You must request access and authenticate
+before downloading.
+
+```bash
+# 2. Go to https://huggingface.co/google/medgemma-4b-it
+#    Click "Agree and access repository" to accept the license.
+#    (Approval may take a few minutes.)
+
+# 3. Create an access token at https://huggingface.co/settings/tokens
+#    - Token type: Read
+#    - Copy the token (starts with hf_...)
+
+# 4. Log in from the terminal
+huggingface-cli login
+#    Paste your token when prompted.
+```
+
+#### Download Models
+
+```bash
+# 5. Download all local models (~20GB total):
+#    - MedGemma 4B instruction-tuned (~8GB)
+#    - SigLIP-2 so400m-patch14-384 (~1.5GB)
+#    - Faster-Whisper large-v3 (~3GB)
+#    - Piper TTS voice models (~500MB)
+bash scripts/download_models.sh
+```
+
+#### Configure and Start
+
+```bash
+# 6. Set MODEL_BACKEND=local in .env
+#    Edit .env and change: MODEL_BACKEND=local
+
+# 7. Install ML + voice dependencies (if not already)
+uv pip install -e ".[ml,voice]"
+
+# 8. Start the server
+bash scripts/start_server.sh development
+
+# 9. Verify with integration tests
+MODEL_BACKEND=local uv run pytest tests/integration/test_local_models.py -v
+```
+
+#### Troubleshooting Hugging Face Access
+
+| Error | Cause | Fix |
+|---|---|---|
+| `401 Client Error` / `Access restricted` | Not logged in or license not accepted | Run `huggingface-cli login` and accept the license at the model page |
+| `huggingface-cli: command not found` | CLI not installed | Run `pip install --user huggingface-cli` or `uv tool install huggingface-cli` |
+| `403 Forbidden` | Token lacks read scope | Generate a new token with `Read` permission at https://huggingface.co/settings/tokens |
+| `Repository not found` | Model ID typo or model removed | Verify `LLM__MEDGEMMA_MODEL_ID` in `.env` matches a valid HF repo |
 
 ### Docker
 ```bash
@@ -62,11 +134,25 @@ APP_ENV=staging ./scripts/start_server.sh staging
 |---|---|
 | `SECRET_KEY` | Application secret (fails startup if missing) |
 | `APP_ENV` | Must be `production` |
-| `MEDGEMMA_API_KEY` | MedGemma API access key |
+| `MODEL_BACKEND` | `local` or `cloud` (not `mock`) |
 | `USE_MOCKS` | Must be `false` |
 | `LOG_FORMAT` | Should be `json` |
 
-### Optional Variables
+### Model Backend Variables
+| Variable | Default | Used By | Description |
+|---|---|---|---|
+| `MODEL_BACKEND` | `mock` | All | `mock`, `local`, or `cloud` |
+| `LLM__MEDGEMMA_MODEL_ID` | `google/medgemma-4b-it` | Local | HF model ID |
+| `LLM__GOOGLE_API_KEY` | — | Cloud | Gemini API key |
+| `LLM__DEVICE` | `auto` | Local | `cuda`, `cpu`, or `auto` |
+| `EMBEDDING__MODEL_ID` | `google/siglip-so400m-patch14-384` | Local+Cloud | HF model ID |
+| `EMBEDDING__DEVICE` | `auto` | Local+Cloud | `cuda`, `cpu`, or `auto` |
+| `VOICE__WHISPER_MODEL_SIZE` | `large-v3` | Local | Faster-Whisper model size |
+| `VOICE__PIPER_VOICES_DIR` | `models/piper` | Local | Piper voice model directory |
+| `VOICE__GOOGLE_CLOUD_PROJECT` | — | Cloud | GCP project ID |
+| `VOICE__GOOGLE_APPLICATION_CREDENTIALS` | — | Cloud | GCP service account JSON path |
+
+### Other Optional Variables
 | Variable | Default | Description |
 |---|---|---|
 | `LOG_LEVEL` | `INFO` | Log verbosity |
