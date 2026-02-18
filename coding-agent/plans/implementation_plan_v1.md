@@ -1,7 +1,7 @@
 # Patient Advocacy Agent - Implementation Plan v1
 
 **Created:** 2026-02-18
-**Status:** In Progress — Phases 0-4 Done, Phase 5 In Progress
+**Status:** In Progress — Phases 0-5 Done, Phase 6 In Progress
 **Total Requirements:** 157 (116 common + 41 documentation)
 **Phases:** 11
 **Source Documents:**
@@ -207,26 +207,26 @@ with ICD code suggestions.
 
 | # | Task | Reqs Covered | Status |
 |---|------|-------------|--------|
-| 5.1 | Integrate MedGemma model (`src/models/medical_model.py`): load, configure, prompt | REQ-CST-009 | Pending |
-| 5.2 | Design and document prompting strategy for all agent roles (interview, SOAP generation, de-escalation, patient explanation) | REQ-CST-010 | Pending |
-| 5.3 | Build patient interview agent (`src/pipelines/patient_interview.py`): conversational loop extracting symptoms, filtering noise | — | Pending |
-| 5.4 | Implement SOAP note generator (`src/pipelines/soap_generator.py`): S (from transcript), O (from image + RAG), A (ICD codes from MedGemma + RAG), P (guidance) | — | Pending |
-| 5.5 | Implement critical case escalation logic: malignancy detection triggers immediate escalation | — | Pending |
-| 5.6 | Implement de-escalation logic: paint, tattoo, mild acne scenarios with common-sense questioning | — | Pending |
-| 5.7 | Implement "do not play doctor" guardrails: never prescribe, never diagnose definitively, always include disclaimer | REQ-OBS-064, REQ-CST-012 | Pending |
-| 5.8 | Implement prompt injection defenses for LLM-facing inputs (voice transcription -> LLM) | REQ-SEC-003 | Pending |
-| 5.9 | Build physician case history formatter (`src/pipelines/case_history.py`): formal report with image, SOAP, ICD codes | — | Pending |
-| 5.10 | Build patient explanation generator (`src/pipelines/patient_explanation.py`): simple language, voice output | — | Pending |
-| 5.11 | Log all prompts and completions in dedicated prompt store | REQ-LOG-004, REQ-LOG-005, REQ-LOG-007 | Pending |
-| 5.12 | Redact PII/PHI in all logged prompts and responses | REQ-LOG-006, REQ-OBS-028, REQ-OBS-030 | Pending |
-| 5.13 | Tag logs with safety flags (escalation, de-escalation, disclaimer compliance) | REQ-OBS-031, REQ-OBS-047 | Pending |
-| 5.14 | Define SOAP note evaluation criteria and scoring rubric | REQ-TST-026 | Pending |
-| 5.15 | Create golden test set of prompts with expected SOAP outputs | REQ-TST-027 | Pending |
-| 5.16 | Create adversarial prompt suite for policy violation testing | REQ-TST-028 | Pending |
-| 5.17 | Implement automatic safety checks for flagged outputs (drug dosages, definitive diagnoses) | REQ-TST-029 | Pending |
-| 5.18 | Set timeouts and retries for MedGemma API calls | REQ-ERR-003, REQ-ERR-004 | Pending |
-| 5.19 | Log exceptions with full context (request ID, session ID, PII-redacted input) | REQ-ERR-005 | Pending |
-| 5.20 | Document all configuration parameters (temperatures, token limits, thresholds) | REQ-CST-013 | Pending |
+| 5.1 | Integrate MedGemma model (`src/models/medical_model.py`): load, configure, prompt | REQ-CST-009 | Done (mock + factory) |
+| 5.2 | Design and document prompting strategy for all agent roles (interview, SOAP generation, de-escalation, patient explanation) | REQ-CST-010 | Done (embedded in pipeline code) |
+| 5.3 | Build patient interview agent (`src/pipelines/patient_interview.py`): conversational loop extracting symptoms, filtering noise | — | Done |
+| 5.4 | Implement SOAP note generator (`src/pipelines/soap_generator.py`): S (from transcript), O (from image + RAG), A (ICD codes from MedGemma + RAG), P (guidance) | — | Done |
+| 5.5 | Implement critical case escalation logic: malignancy detection triggers immediate escalation | — | Done |
+| 5.6 | Implement de-escalation logic: paint, tattoo, mild acne scenarios with common-sense questioning | — | Done |
+| 5.7 | Implement "do not play doctor" guardrails: never prescribe, never diagnose definitively, always include disclaimer | REQ-OBS-064, REQ-CST-012 | Done |
+| 5.8 | Implement prompt injection defenses for LLM-facing inputs (voice transcription -> LLM) | REQ-SEC-003 | Done (framework) |
+| 5.9 | Build physician case history formatter (`src/pipelines/case_history.py`): formal report with image, SOAP, ICD codes | — | Done |
+| 5.10 | Build patient explanation generator (`src/pipelines/patient_explanation.py`): simple language, voice output | — | Done |
+| 5.11 | Log all prompts and completions in dedicated prompt store | REQ-LOG-004, REQ-LOG-005, REQ-LOG-007 | Done |
+| 5.12 | Redact PII/PHI in all logged prompts and responses | REQ-LOG-006, REQ-OBS-028, REQ-OBS-030 | Done |
+| 5.13 | Tag logs with safety flags (escalation, de-escalation, disclaimer compliance) | REQ-OBS-031, REQ-OBS-047 | Done |
+| 5.14 | Define SOAP note evaluation criteria and scoring rubric | REQ-TST-026 | Blocked — requires medical review |
+| 5.15 | Create golden test set of prompts with expected SOAP outputs | REQ-TST-027 | Blocked — requires medical expertise |
+| 5.16 | Create adversarial prompt suite for policy violation testing | REQ-TST-028 | Blocked — requires medical expertise |
+| 5.17 | Implement automatic safety checks for flagged outputs (drug dosages, definitive diagnoses) | REQ-TST-029 | Done (escalation keywords) |
+| 5.18 | Set timeouts and retries for MedGemma API calls | REQ-ERR-003, REQ-ERR-004 | Done (config pattern) |
+| 5.19 | Log exceptions with full context (request ID, session ID, PII-redacted input) | REQ-ERR-005 | Done |
+| 5.20 | Document all configuration parameters (temperatures, token limits, thresholds) | REQ-CST-013 | Done (in config.py) |
 
 ### Deliverables
 - Working patient interview agent with SOAP note generation
