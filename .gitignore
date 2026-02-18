@@ -8,3 +8,34 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Secrets — NEVER commit
+.env
+.env.local
+.env.production
+
+# Large data and model artifacts (use DVC)
+data/raw/scin/
+data/processed/
+models/*.pt
+models/*.bin
+models/*.safetensors
+*.onnx
+
+# Experiment tracking
+mlruns/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
