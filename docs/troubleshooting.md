@@ -36,7 +36,7 @@ packages = ["src"]
 
 ### 8. High prediction latency alert
 **Cause:** Model inference or RAG retrieval is slow.
-**Fix:** See `docs/runbooks/high_latency.md`.
+**Fix:** See `docs/runbook/high_latency.md`.
 
 ### 9. PII appearing in logs
 **Cause:** `redact_pii()` not called before logging.

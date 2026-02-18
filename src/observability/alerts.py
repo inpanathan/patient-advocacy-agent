@@ -73,7 +73,7 @@ DEFAULT_RULES: list[AlertRule] = [
         threshold=2000.0,
         comparison="gt",
         description="Prediction latency exceeds 2 seconds (p95)",
-        runbook_url="docs/runbooks/high_latency.md",
+        runbook_url="docs/runbook/high_latency.md",
     ),
     AlertRule(
         name="low_prediction_confidence",
@@ -83,7 +83,7 @@ DEFAULT_RULES: list[AlertRule] = [
         threshold=0.3,
         comparison="lt",
         description="Average prediction confidence below 0.3",
-        runbook_url="docs/runbooks/low_confidence.md",
+        runbook_url="docs/runbook/low_confidence.md",
     ),
     AlertRule(
         name="high_escalation_rate",
@@ -93,7 +93,7 @@ DEFAULT_RULES: list[AlertRule] = [
         threshold=0.5,
         comparison="gt",
         description="Escalation rate exceeds 50%",
-        runbook_url="docs/runbooks/high_escalation.md",
+        runbook_url="docs/runbook/high_escalation.md",
     ),
     AlertRule(
         name="high_cpu_usage",
@@ -103,7 +103,7 @@ DEFAULT_RULES: list[AlertRule] = [
         threshold=90.0,
         comparison="gt",
         description="CPU usage exceeds 90%",
-        runbook_url="docs/runbooks/high_cpu.md",
+        runbook_url="docs/runbook/high_cpu.md",
     ),
     AlertRule(
         name="high_memory_usage",
@@ -113,7 +113,7 @@ DEFAULT_RULES: list[AlertRule] = [
         threshold=8192.0,
         comparison="gt",
         description="Memory usage exceeds 8GB",
-        runbook_url="docs/runbooks/high_memory.md",
+        runbook_url="docs/runbook/high_memory.md",
     ),
     AlertRule(
         name="retrieval_latency_spike",
@@ -123,7 +123,7 @@ DEFAULT_RULES: list[AlertRule] = [
         threshold=1000.0,
         comparison="gt",
         description="RAG retrieval latency exceeds 1 second (p95)",
-        runbook_url="docs/runbooks/retrieval_latency.md",
+        runbook_url="docs/runbook/retrieval_latency.md",
     ),
 ]
 

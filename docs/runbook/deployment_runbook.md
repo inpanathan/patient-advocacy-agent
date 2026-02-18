@@ -128,5 +128,5 @@ Change to previous version and restart.
 1. Check health endpoint
 2. Review structured logs (JSON format)
 3. Check fired alerts (see `src/observability/alerts.py`)
-4. Follow relevant runbook in `docs/runbooks/`
+4. Follow relevant runbook in `docs/runbook/`
 5. Escalate to platform team if unresolved
