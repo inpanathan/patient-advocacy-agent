@@ -47,10 +47,18 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 while true; do
     if ! kill -0 "$PROC_PID" 2>/dev/null; then
-        echo ""
-        echo "$SERVICE_NAME process exited."
+        # Process exited — check if it succeeded or failed
+        wait "$PROC_PID" 2>/dev/null
+        EXIT_CODE=$?
         rm -f "$PIDFILE"
-        exit 1
+        echo ""
+        if [[ $EXIT_CODE -eq 0 ]]; then
+            echo "$SERVICE_NAME completed successfully."
+            exit 0
+        else
+            echo "$SERVICE_NAME process failed (exit code: $EXIT_CODE)."
+            exit 1
+        fi
     fi
 
     read -rsn1 -t 1 key || continue

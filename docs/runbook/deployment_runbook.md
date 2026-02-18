@@ -84,15 +84,10 @@ bash scripts/download_models.sh
 
 The [SCIN (Skin Condition Image Network)](https://github.com/google-research-datasets/scin)
 dataset provides 10,000+ dermatological images for the RAG knowledge base.
+No cloud SDK or authentication required — the dataset is publicly accessible.
 
 ```bash
-# 6. Install Google Cloud Storage client
-uv pip install google-cloud-storage
-
-# 7. Authenticate with Google Cloud (for GCS bucket access)
-gcloud auth application-default login
-
-# 8. Download full SCIN dataset (~2GB: metadata + images)
+# 6. Download full SCIN dataset (~2GB: metadata + images)
 bash scripts/download_scin.sh
 
 # OR: Download metadata only (fast, ~10MB)
@@ -102,25 +97,27 @@ bash scripts/download_scin.sh --skip-images
 bash scripts/download_scin.sh --limit 100
 ```
 
-The script downloads from the public GCS bucket `dx-scin-public-data`, converts
-the CSV data into our `metadata.json` format, and saves images to `data/raw/scin/images/`.
+The script downloads CSVs and images via HTTPS from the public GCS bucket
+`dx-scin-public-data`, converts into our `metadata.json` format, and stores
+everything locally at `data/raw/scin/`. Downloads are idempotent — re-running
+skips already-downloaded files.
 
 #### Configure and Start
 
 ```bash
-# 9. Set MODEL_BACKEND=local in .env
+# 7. Set MODEL_BACKEND=local in .env
 #    Edit .env and change: MODEL_BACKEND=local
 
-# 10. Install ML + voice dependencies (if not already)
+# 8. Install ML + voice dependencies (if not already)
 uv pip install -e ".[ml,voice]"
 
-# 11. Index SCIN embeddings into the vector store
+# 9. Index SCIN embeddings into the vector store
 bash scripts/index_embeddings.sh
 
-# 12. Start the server
+# 10. Start the server
 bash scripts/start_server.sh development
 
-# 13. Verify with integration tests
+# 11. Verify with integration tests
 MODEL_BACKEND=local uv run pytest tests/integration/test_local_models.py -v
 ```
 
@@ -137,10 +134,9 @@ MODEL_BACKEND=local uv run pytest tests/integration/test_local_models.py -v
 
 | Error | Cause | Fix |
 |---|---|---|
-| `ModuleNotFoundError: google.cloud.storage` | GCS client not installed | Run `uv pip install google-cloud-storage` |
-| `DefaultCredentialsError` | Not authenticated with Google Cloud | Run `gcloud auth application-default login` |
-| `gcloud: command not found` | Google Cloud SDK not installed | Install from https://cloud.google.com/sdk/docs/install |
-| `403 Forbidden` on bucket | Bucket access issue | The bucket `dx-scin-public-data` is public; check network/proxy settings |
+| `curl: (22) 403 Forbidden` | Network/proxy blocking GCS | Check firewall/proxy; the bucket `dx-scin-public-data` is public |
+| `curl: command not found` | curl not installed | Install with `sudo apt install curl` |
+| Images download slowly | Large dataset (~2GB) | Use `--limit 100` for a subset, or `--skip-images` for metadata only |
 | `metadata.json` missing after download | Script failed mid-download | Re-run `bash scripts/download_scin.sh`; it's idempotent |
 
 ### Docker

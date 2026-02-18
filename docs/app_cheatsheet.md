@@ -200,9 +200,7 @@ huggingface-cli login
 # 5. Download all model weights (~20GB)
 bash scripts/download_models.sh
 
-# 6. Download SCIN dataset (~2GB)
-uv pip install google-cloud-storage
-gcloud auth application-default login
+# 6. Download SCIN dataset (~2GB, no auth required)
 bash scripts/download_scin.sh
 
 # 7. Index SCIN embeddings into the vector store

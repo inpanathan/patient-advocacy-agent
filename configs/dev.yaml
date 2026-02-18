@@ -3,7 +3,7 @@
 
 app_env: dev
 app_debug: true
-use_mocks: true
+use_mocks: false
 
 logging:
   level: DEBUG
