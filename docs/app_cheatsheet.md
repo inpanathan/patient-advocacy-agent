@@ -7,7 +7,8 @@
 ### Local Development
 | URL | Description |
 |---|---|
-| `http://localhost:8000` | Application root |
+| `http://localhost:5173` | Frontend (React dev server, proxies API to backend) |
+| `http://localhost:8000` | Backend API root |
 | `http://localhost:8000/health` | Health check |
 | `http://localhost:8000/docs` | Swagger/OpenAPI docs |
 | `http://localhost:8000/redoc` | ReDoc API docs |
@@ -140,21 +141,35 @@ bash scripts/download_piper_voices.sh en hi es
 ### Starting the Application
 
 ```bash
-# Development server (with hot reload)
+# Backend — development server (with hot reload)
 bash scripts/start_server.sh
 
-# Staging (2 workers)
+# Backend — staging (2 workers)
 bash scripts/start_server.sh staging
 
-# Production (4 workers)
+# Backend — production (4 workers)
 bash scripts/start_server.sh production
 
-# Docker
+# Backend — Docker
 bash scripts/start_server.sh docker
+
+# Frontend — dev server (proxies /api to backend on :8000)
+bash frontend/scripts/start.sh           # http://localhost:5173
+
+# Frontend — production build
+bash frontend/scripts/start.sh build     # outputs to frontend/dist/
+
+# Frontend — preview production build
+bash frontend/scripts/start.sh preview
+
+# Frontend — stop
+bash frontend/scripts/stop.sh
 
 # Start voice pipeline (WebRTC)
 bash scripts/start_voice_pipeline.sh
 ```
+
+**Typical dev workflow:** Start the backend first (`bash scripts/start_server.sh`), then in a second terminal start the frontend (`bash frontend/scripts/start.sh`). The Vite dev server on port 5173 proxies API calls to the backend on port 8000. Press `b` to background either process, or `q` to stop. You can also stop the frontend later with `bash frontend/scripts/stop.sh`.
 
 ### Data & Embeddings
 
