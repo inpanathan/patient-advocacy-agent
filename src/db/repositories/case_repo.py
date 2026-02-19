@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
 
 from src.db.models import (
     AudioRole,
@@ -43,8 +44,10 @@ class CaseRepository(BaseRepository):
         return case
 
     async def get_case(self, case_id: uuid.UUID) -> Case | None:
-        """Get a case by ID."""
-        return await self.session.get(Case, case_id)  # type: ignore[no-any-return]
+        """Get a case by ID with images eagerly loaded."""
+        stmt = select(Case).where(Case.id == case_id).options(selectinload(Case.images))
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()  # type: ignore[no-any-return]
 
     async def update_case(
         self,
@@ -52,7 +55,9 @@ class CaseRepository(BaseRepository):
         **kwargs: Any,
     ) -> Case | None:
         """Update case fields."""
-        case: Case | None = await self.session.get(Case, case_id)
+        stmt = select(Case).where(Case.id == case_id).options(selectinload(Case.images))
+        result = await self.session.execute(stmt)
+        case: Case | None = result.scalar_one_or_none()
         if case is None:
             return None
         for key, value in kwargs.items():
@@ -70,7 +75,9 @@ class CaseRepository(BaseRepository):
         escalated: bool = False,
     ) -> Case | None:
         """Finalize a case with SOAP data and mark it awaiting review."""
-        case: Case | None = await self.session.get(Case, case_id)
+        stmt = select(Case).where(Case.id == case_id).options(selectinload(Case.images))
+        result = await self.session.execute(stmt)
+        case: Case | None = result.scalar_one_or_none()
         if case is None:
             return None
         case.soap_note = soap_note
@@ -87,10 +94,28 @@ class CaseRepository(BaseRepository):
         status: CaseStatus | None = None,
     ) -> list[Case]:
         """List cases assigned to a doctor, optionally filtered by status."""
-        stmt = select(Case).where(Case.doctor_id == doctor_id)
+        stmt = select(Case).where(Case.doctor_id == doctor_id).options(selectinload(Case.images))
         if status is not None:
             stmt = stmt.where(Case.status == status)
         stmt = stmt.order_by(Case.escalated.desc(), Case.created_at.desc())
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def list_facility_cases(
+        self,
+        facility_id: uuid.UUID,
+        status: CaseStatus | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[Case]:
+        """List cases for a facility, optionally filtered by status."""
+        stmt = (
+            select(Case).where(Case.facility_id == facility_id).options(selectinload(Case.images))
+        )
+        if status is not None:
+            stmt = stmt.where(Case.status == status)
+        stmt = stmt.order_by(Case.escalated.desc(), Case.created_at.desc())
+        stmt = stmt.offset(offset).limit(limit)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 

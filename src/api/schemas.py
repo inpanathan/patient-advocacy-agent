@@ -78,6 +78,7 @@ class CaseResponse(BaseModel):
     doctor_id: str | None
     status: str
     escalated: bool
+    image_count: int = 0
     created_at: datetime
     updated_at: datetime
 
@@ -123,6 +124,7 @@ class DoctorCaseResponse(BaseModel):
     soap_note: dict | None
     icd_codes: list[str] | None
     doctor_notes: str | None
+    image_count: int = 0
     created_at: datetime
 
 
