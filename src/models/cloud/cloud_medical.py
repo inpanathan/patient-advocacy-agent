@@ -56,17 +56,18 @@ class CloudMedicalModel:
         logger.info("cloud_medical_model_initialized", model=self._model_name)
 
     async def generate(
-        self, prompt: str, *, temperature: float = 0.3
+        self, prompt: str, *, temperature: float = 0.3, max_tokens: int = 0
     ) -> MedicalModelResponse:
         """Generate a response using Gemini API."""
         t0 = time.monotonic()
+        token_limit = max_tokens if max_tokens > 0 else settings.llm.max_tokens
 
         response = self._client.models.generate_content(
             model=self._model_name,
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=temperature,
-                max_output_tokens=settings.llm.max_tokens,
+                max_output_tokens=token_limit,
             ),
         )
 

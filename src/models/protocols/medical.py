@@ -41,7 +41,9 @@ class MedicalModelResponse:
 class MedicalModelProtocol(Protocol):
     """Interface for medical AI models (MedGemma)."""
 
-    async def generate(self, prompt: str, *, temperature: float = 0.3) -> MedicalModelResponse:
+    async def generate(
+        self, prompt: str, *, temperature: float = 0.3, max_tokens: int = 0
+    ) -> MedicalModelResponse:
         """Generate a response from the medical model."""
         ...
 

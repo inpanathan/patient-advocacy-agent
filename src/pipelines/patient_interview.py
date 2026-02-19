@@ -306,6 +306,7 @@ class PatientInterviewAgent:
         response = await self._model.generate(
             prompt=prompt,
             temperature=0.2,
+            max_tokens=60,
         )
 
         # Clean up — take only the first sentence/question

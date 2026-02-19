@@ -44,6 +44,15 @@ echo ""
 echo "  Press 'b' to send to background"
 echo "  Press 'q' to stop"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "  Log commands:"
+echo "    tail -f $LOGFILE                      # Follow all logs"
+echo "    tail -100 $LOGFILE                    # Last 100 lines"
+echo "    tail -f $LOGFILE | grep -i error      # Errors only"
+echo "    tail -f $LOGFILE | grep -i warn       # Warnings only"
+echo "    tail -f $LOGFILE | grep -iE 'error|warn|fail|traceback'  # All problems"
+echo "    tail -f $LOGFILE | grep 'POST\|GET'   # HTTP requests"
+echo ""
 
 while true; do
     if ! kill -0 "$PROC_PID" 2>/dev/null; then
@@ -67,9 +76,19 @@ while true; do
         b|B)
             disown "$PROC_PID"
             echo ""
-            echo "$SERVICE_NAME sent to background (PID: $PROC_PID)"
-            echo "  Logs:  tail -f $LOGFILE"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "  $SERVICE_NAME sent to background (PID: $PROC_PID)"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            echo "  Tail logs:"
+            echo "    tail -f $LOGFILE                      # Follow all logs"
+            echo "    tail -100 $LOGFILE                    # Last 100 lines"
+            echo "    tail -f $LOGFILE | grep -i error      # Errors only"
+            echo "    tail -f $LOGFILE | grep -iE 'error|warn|fail|traceback'  # All problems"
+            echo "    tail -f $LOGFILE | grep 'POST\|GET'   # HTTP requests"
+            echo ""
             echo "  Stop:  kill $PROC_PID"
+            echo ""
             exit 0
             ;;
         q|Q)
