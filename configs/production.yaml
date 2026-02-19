@@ -20,6 +20,11 @@ llm:
   timeout_seconds: 30
   max_tokens: 4096
 
+database:
+  enabled: true
+  pool_size: 20
+  echo: false
+
 vector_store:
   persist_dir: /data/chroma
   top_k: 10

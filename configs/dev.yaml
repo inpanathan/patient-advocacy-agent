@@ -19,6 +19,16 @@ llm:
   temperature: 0.3
   timeout_seconds: 60
 
+database:
+  enabled: true
+  host: localhost
+  port: 5432
+  name: patient_advocacy
+  user: patient_advocacy
+  password: ""
+  pool_size: 5
+  echo: true
+
 vector_store:
   persist_dir: data/chroma
   top_k: 10

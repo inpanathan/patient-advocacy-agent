@@ -59,6 +59,12 @@ class ErrorCode(StrEnum):
     SESSION_NOT_FOUND = "SESSION_NOT_FOUND"
     SESSION_EXPIRED = "SESSION_EXPIRED"
 
+    # Authentication
+    AUTH_FAILED = "AUTH_FAILED"
+    FORBIDDEN = "FORBIDDEN"
+    TOKEN_EXPIRED = "TOKEN_EXPIRED"
+    TOKEN_INVALID = "TOKEN_INVALID"
+
 
 class AppError(Exception):
     """Base application error with structured context.

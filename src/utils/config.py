@@ -91,6 +91,32 @@ class EmailSettings(BaseSettings):
     case_history_recipient: str = ""
 
 
+class DatabaseSettings(BaseSettings):
+    """PostgreSQL database configuration."""
+
+    enabled: bool = True
+    host: str = "localhost"
+    port: int = 5432
+    name: str = "patient_advocacy"
+    user: str = "patient_advocacy"
+    password: str = ""
+    pool_size: int = 5
+    echo: bool = False
+
+    @property
+    def async_url(self) -> str:
+        """SQLAlchemy async connection URL."""
+        return (
+            f"postgresql+asyncpg://{self.user}:{self.password}"
+            f"@{self.host}:{self.port}/{self.name}"
+        )
+
+    @property
+    def sync_url(self) -> str:
+        """SQLAlchemy sync connection URL (for Alembic)."""
+        return f"postgresql://{self.user}:{self.password}" f"@{self.host}:{self.port}/{self.name}"
+
+
 class ServerSettings(BaseSettings):
     """Application server configuration."""
 
@@ -129,6 +155,7 @@ class Settings(BaseSettings):
     voice: VoiceSettings = Field(default_factory=VoiceSettings)
     scin: SCINSettings = Field(default_factory=SCINSettings)
     email: EmailSettings = Field(default_factory=EmailSettings)
+    database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     server: ServerSettings = Field(default_factory=ServerSettings)
 
     @field_validator("app_env")
