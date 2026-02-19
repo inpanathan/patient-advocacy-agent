@@ -347,6 +347,15 @@ Quantifiable targets that determine project success.
 - Test request parsing and response formatting in inference/serving code (WebRTC payloads,
   SOAP note format, case history format).
 - Verify default values and fallback behavior when optional inputs are missing.
+- Safety disclaimers (e.g., "not a doctor") should be tested at the session level, not
+  per-response. For voice-first interfaces with illiterate users, repeating legal disclaimers
+  every turn degrades UX.
+- Do not rely on small LLMs (e.g., 4B parameter models) to track conversational state
+  implicitly. Use explicit state tracking (keyword extraction, topic checklists) and test that
+  answered topics are not re-asked.
+- ICD code validators must cover multiple ICD chapters. Dermatological conditions appear in
+  Chapter XII (L-codes for skin), Chapter I (B-codes for fungal infections), Chapter II
+  (C-codes for neoplasms), and others.
 
 ### 9.4 Integration and End-to-End Tests
 
@@ -446,6 +455,12 @@ Quantifiable targets that determine project success.
 - Add all necessary URLs (web interface, API endpoints, model registry, monitoring
   dashboards, SCIN database location) and other operational details in the
   `app_cheatsheet.md`.
+- When using FastAPI with a `create_app()` factory pattern, uvicorn requires the `--factory`
+  flag and a function reference (e.g., `main:create_app`), not an attribute reference
+  (`main:app`).
+- Document gated HuggingFace model prerequisites in the deployment runbook: license
+  acceptance on the model page, `huggingface-cli login` with a read-scoped token, then the
+  download script. Include a troubleshooting table for common HuggingFace errors.
 
 ## 11. Security
 
@@ -478,6 +493,15 @@ Quantifiable targets that determine project success.
   limits) alongside code.
 - Use feature flags for incremental rollout of new capabilities (e.g., new language support,
   updated models, new de-escalation scenarios).
+- When using Gemma-family models (MedGemma), always load with `bfloat16` precision, not
+  `float16`. `float16` has only 5 exponent bits, causing logits to overflow to NaN/inf during
+  sampling. `bfloat16` has the same exponent range as float32 with the memory savings of
+  float16.
+- Model factories (STT, TTS, medical model) must use singleton/caching patterns. Multiple
+  module-level instantiations will load duplicate models, exhausting GPU memory.
+- When changing a port number, grep the entire project for the old value. Port references
+  appear in `.env`, config files, docker-compose, frontend proxy settings, scripts, and
+  documentation.
 
 ## 13. Error Handling and Resilience
 
@@ -492,6 +516,12 @@ Quantifiable targets that determine project success.
   rate limits, temporary model server unavailability).
 - Log all exceptions with full context (stack trace, request ID, patient session ID, input
   summary with PII redacted) for post-incident analysis.
+- Add CUDA out-of-memory detection with graceful fallback to CPU when multiple models (STT,
+  TTS, medical) compete for a single GPU.
+- Set connection timeouts on database pools. A missing or unreachable database causes
+  requests to hang silently with no error returned to the client.
+- API endpoints that advance conversational state (e.g., greeting to interview) must
+  explicitly update the state machine. Do not rely on downstream handlers to infer state.
 
 ## 14. Dependency Management
 
@@ -536,12 +566,61 @@ Quantifiable targets that determine project success.
 - Track end-to-end data lineage from raw sources (SCIN database, patient input) through
   features (embeddings, transcriptions) to model predictions (ICD codes, SOAP notes).
 
-## 18. Agent Document Outputs
+## 18. Frontend & Browser Requirements
+
+- Use the Pointer Events API (`onPointerDown`/`onPointerUp`) instead of separate mouse and
+  touch event handlers. Separate handlers cause double-firing on touch devices.
+- For push-to-talk, acquire the microphone stream once on component mount and keep it
+  persistent. Only start/stop the MediaRecorder on press/release. Re-acquiring
+  `getUserMedia` per press loses the beginning of speech (~100-500ms latency).
+- WebRTC APIs (`getUserMedia`, `mediaDevices`) require a secure context (HTTPS or
+  localhost). When serving from a LAN IP, use a dev SSL plugin (e.g.,
+  `@vitejs/plugin-basic-ssl`) even during development.
+- Use `navigator.mediaDevices.getUserMedia()` for cross-platform camera access, not the HTML
+  `capture="environment"` attribute (which is mobile-only and falls back to a file picker on
+  desktop).
+- In React/JSX, use JavaScript Unicode escapes (`\uXXXX`) or actual Unicode characters, not
+  HTML entities (`&#NNNN;`). HTML entities render as literal text in JSX.
+- When async operations (e.g., `getUserMedia`) control UI state (e.g., a recording
+  indicator), ensure the cleanup path always resets the state regardless of whether the async
+  operation completed.
+
+## 19. Async Database & Multi-Tenant Patterns
+
+- In async SQLAlchemy, always use eager loading (`selectinload`, `joinedload`) for
+  relationships. Lazy loading triggers `MissingGreenlet` errors in async contexts.
+- Multi-tenant numbering schemes (patient numbers, case numbers) scoped per-tenant must use
+  composite unique constraints (`UniqueConstraint('facility_id', 'patient_number')`), not
+  global `unique=True`.
+- SOAP note generation requires the full conversation history (both patient answers and
+  assistant questions), not just raw patient transcript. Raw text alone produces incomplete
+  Objective/Assessment/Plan sections.
+- Always use absolute or config-driven paths for data directories. Relative paths break
+  depending on which directory the server is started from.
+
+## 20. API Design
+
+- Register specific FastAPI routes (e.g., `/health`, API routers) before SPA catch-all routes
+  (`/{full_path:path}`). Catch-all path parameters match everything and will intercept
+  specific routes registered after them.
+- Never use `from __future__ import annotations` in FastAPI route files. It turns annotations
+  into strings, breaking FastAPI's runtime dependency injection for `Request`, `File`,
+  `Depends`, and other parameters.
+- Every data flow in the architecture diagram must have a corresponding API endpoint.
+  Parameters that accept optional data but are never populated are dead code — wire the full
+  pipeline end-to-end.
+- Different user roles (admin, doctor, patient) need separate endpoints or role-aware
+  authorization. Verify that frontend routes call endpoints matching the authenticated user's
+  role.
+- List/search endpoints must be registered before parameterized routes (e.g., `GET /cases/`
+  before `GET /cases/{case_id}`) to avoid path conflicts in FastAPI.
+
+## 21. Agent Document Outputs
 
 The agent shall produce the following document types. Each document type shall follow a
 consistent template (sections, headings, tables) to ensure uniform outputs across projects.
 
-### 18.1 Architecture Overview
+### 21.1 Architecture Overview
 
 - **Purpose:** Describe the system's purpose, context, key components, and main data/control
   flows for the Patient Advocacy Agent.
@@ -550,32 +629,32 @@ consistent template (sections, headings, tables) to ensure uniform outputs acros
   embedding model (SigLIP-2), medical model (MedGemma), SOAP generation, case history
   delivery, patient voice output.
 
-### 18.2 Design Specification
+### 21.2 Design Specification
 
 - **Scope:** Module responsibilities, interfaces between voice/image/RAG/LLM services, data
   models (SOAP notes, case histories, ICD codes, patient sessions), error-handling
   strategies, and non-functional constraints.
 
-### 18.3 Deployment & Operational Runbook
+### 21.3 Deployment & Operational Runbook
 
 - **Scope:** Target deployment environments (frontier village kiosks, cloud infrastructure),
   infrastructure topology, CI/CD steps, configuration for each environment, scaling strategy
   for concurrent patient sessions, observability stack, and SLOs for voice latency, case
   completion, and system uptime.
 
-### 18.4 Product / Requirements Document (PRD/SRS Hybrid)
+### 21.4 Product / Requirements Document (PRD/SRS Hybrid)
 
 - **Scope:** User goals (patient triage, physician case preparation), functional requirements
   (voice interface, 5+ languages, permission-gated pictures, SOAP framework), quality
   attributes (latency, accuracy, safety), acceptance criteria per requirement, and
   dependencies (SCIN database, MedGemma, SigLIP-2, WebRTC).
 
-## 19. Agent Input Requirements
+## 22. Agent Input Requirements
 
 The agent shall only produce high-quality documentation when supplied with the following
 structured inputs.
 
-### 19.1 Problem Statement & Constraints
+### 22.1 Problem Statement & Constraints
 
 - **Business Goals:** Provide accessible dermatological triage in frontier villages with extreme
   physician-to-patient ratios (1:1000 to 1:10,000).
@@ -587,7 +666,7 @@ structured inputs.
 - **Infrastructure Limits:** Low-bandwidth connectivity in frontier villages, limited power
   availability, basic hardware (camera, microphone, speaker).
 
-### 19.2 Architectural Drivers
+### 22.2 Architectural Drivers
 
 - Prioritized functional requirements (MoSCoW):
   - **Must Have:** Voice-only interface, permission-gated image capture, SOAP note
@@ -602,13 +681,13 @@ structured inputs.
   concurrent session handling, embedding retrieval speed.
 - Concerns and constraints in structured form (see tables in architecture document).
 
-### 19.3 Existing System Context
+### 22.3 Existing System Context
 
 - Repository snapshot and high-level description to be maintained in README.md.
 - Reference architectures: agentic RAG patterns, multimodal search pipelines, WebRTC
   media capture patterns.
 
-### 19.4 Guardrails & Style
+### 22.4 Guardrails & Style
 
 - **Naming Conventions:** To be defined for code (Python snake_case), APIs (RESTful
   resource naming), database tables, and configuration keys.
@@ -622,57 +701,57 @@ structured inputs.
   - **Never:** Store PII in plain text. Prescribe medication. Claim to be a doctor. Commit
     secrets to the repository. Use Streamlit for the interface.
 
-### 19.5 Codebase Grounding
+### 22.5 Codebase Grounding
 
 - For the Patient Advocacy Agent, the agent shall work against the indexed project
   repository and SCIN database documentation rather than raw, ad-hoc pastes, so that
   descriptions and diagrams are grounded in the actual codebase and data.
 
-## 20. Generation & Review Practices
+## 23. Generation & Review Practices
 
 The documentation workflow shall be explicitly multi-step, not "one-shot big spec."
 
-### 20.1 Plan-First Mode
+### 23.1 Plan-First Mode
 
 - The agent shall outline sections, open questions, and assumptions before writing full prose
   for any document (architecture, design, runbook, or PRD).
 
-### 20.2 Iterative Refinement
+### 23.2 Iterative Refinement
 
 - Start with coarse documents (system context + container diagrams).
 - Iterate into components, interfaces, and deployment details.
 - Update earlier diagrams as the design evolves (e.g., when new services are added to the
   voice pipeline).
 
-### 20.3 Human Checkpoints
+### 23.3 Human Checkpoints
 
 - After each documentation phase (architectural drivers, architecture overview, detailed
   design, deployment runbook), a human must approve or comment.
 - Feed diffs and comments back so the agent revises rather than rewriting from scratch.
 
-### 20.4 Self-Checks
+### 23.4 Self-Checks
 
 - The agent shall include a **Validation / Open Issues** section in every generated document,
   listing assumptions, risks, and items to confirm.
 - The agent shall perform a consistency check against the original project requirements
   (this document) after generating each document.
 
-### 20.5 Separation of Concerns
+### 23.5 Separation of Concerns
 
 - Use separate runs/agents for code generation vs. documentation generation to keep the
   design stable and auditable. One agent generates the spec; another implements against it.
 
-## 21. Content Standards
+## 24. Content Standards
 
 Each document shall meet the following content standards.
 
-### 21.1 Traceability
+### 24.1 Traceability
 
 - Map requirements (from this document and the controller JSONs) to architectural drivers to
   design decisions in traceability tables.
 - Maintain these traceability tables as living documents updated with each design change.
 
-### 21.2 Explicit Decisions
+### 24.2 Explicit Decisions
 
 - Capture key trade-offs in an Architecture Decision Record (ADR) format: "chose X over Y
   because..." For example:
@@ -681,7 +760,7 @@ Each document shall meet the following content standards.
   - Why contrastive loss over other fine-tuning approaches.
   - Why MedGemma and SigLIP-2 over alternative models.
 
-### 21.3 Non-Functional Details
+### 24.3 Non-Functional Details
 
 - **Performance Budgets:** Voice-to-text latency, RAG retrieval latency, SOAP generation
   time, end-to-end interaction time.
@@ -692,7 +771,7 @@ Each document shall meet the following content standards.
 - **Design-to-NFR Mapping:** Each non-functional requirement must map to a specific design
   decision that addresses it.
 
-### 21.4 LLM / Agent Specifics
+### 24.4 LLM / Agent Specifics
 
 - **Model Names and Versions:** MedGemma (version TBD), SigLIP-2 (version TBD),
   fine-tuned embedding model (versioned via model registry), language detection model
@@ -708,37 +787,37 @@ Each document shall meet the following content standards.
   values, embedding dimensions, clustering thresholds, language detection confidence
   thresholds.
 
-### 21.5 Diagrams
+### 24.5 Diagrams
 
 - For C4 (context, container, component), sequence, and deployment diagrams, generate
   text-based specs using Mermaid under a **Diagrams** section in each document.
 - All diagrams must be versionable (stored as code in the repository) and reviewable in PRs.
 
-## 22. Deployment & Lifecycle Practices
+## 25. Deployment & Lifecycle Practices
 
 Documentation shall be treated as living artifacts maintained by agents, not one-off exports.
 
-### 22.1 Repo-Stored Documentation
+### 25.1 Repo-Stored Documentation
 
 - Store all generated documents in the `docs/` directory of the repository.
 - Wire an agent into CI to flag drift between code and documentation (e.g., new API
   endpoints not reflected in the architecture doc, changed config keys not updated in the
   runbook).
 
-### 22.2 Orchestrated Updates
+### 25.2 Orchestrated Updates
 
 - Use orchestration (e.g., LangGraph or equivalent) so that when one agent introduces
   significant structural changes (new services, changed data flows), another agent updates
   the architecture and design documents accordingly.
 
-### 22.3 Cache & Reuse
+### 25.3 Cache & Reuse
 
 - The system shall retrieve relevant sections of past documents as context when generating
   new ones, to maintain consistency.
 - Maintain a project glossary of terms (SOAP, ICD codes, SCIN, Fitzpatrick scale, PHI,
   PII, RAG, WebRTC) to ensure consistent terminology across all documents.
 
-### 22.4 Governance
+### 25.4 Governance
 
 - Define who signs off on architecture and deployment documents (project lead, medical
   advisor if applicable, security reviewer for PHI-related sections).
