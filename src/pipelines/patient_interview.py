@@ -16,11 +16,6 @@ from src.utils.session import PatientSession, SessionStage
 
 logger = structlog.get_logger(__name__)
 
-DISCLAIMER = (
-    "I am an AI assistant, not a doctor. My assessment is for informational purposes only. "
-    "Please seek professional medical help for proper evaluation and treatment."
-)
-
 ESCALATION_KEYWORDS = [
     "melanoma",
     "malignant",
@@ -42,6 +37,175 @@ DE_ESCALATION_KEYWORDS = [
     "dye",
 ]
 
+DISCLAIMER = (
+    "I am not a doctor. This is not a medical diagnosis. "
+    "Please seek professional medical help for proper evaluation and treatment."
+)
+
+INTERVIEW_SYSTEM_BASE = """\
+You are a friendly health assistant helping a patient describe a skin problem. \
+You are NOT a doctor. You are collecting information so a real doctor can help later.
+
+Rules:
+- Ask exactly ONE short question per turn (1 sentence, max 15 words).
+- Use very simple language (the patient may be illiterate).
+- Never diagnose, prescribe, or give medical advice.
+- Never say "or" to offer multiple choices. Just pick the most important question.
+- Do NOT repeat or re-ask anything listed under "What the patient has told you so far".
+"""
+
+TOPIC_QUESTIONS: dict[str, str] = {
+    "chief_complaint": "What is the problem?",
+    "location": "Where on your body is it?",
+    "duration": "How long have you had it?",
+    "progression": "Is it getting worse, better, or staying the same?",
+    "symptoms": "Does it itch, hurt, or burn?",
+}
+
+TOPIC_KEYWORDS: dict[str, list[str]] = {
+    "chief_complaint": [
+        "rash",
+        "bump",
+        "spot",
+        "sore",
+        "wound",
+        "blister",
+        "swelling",
+        "patch",
+        "pimple",
+        "boil",
+        "lump",
+        "lesion",
+        "mark",
+        "skin",
+        "eczema",
+        "infection",
+        "irritation",
+        "redness",
+        "discoloration",
+        "scab",
+        "wart",
+        "ulcer",
+        "bite",
+        "sting",
+        "hives",
+        "acne",
+        "ringworm",
+        "fungus",
+        "peeling",
+        "flaking",
+        "dry",
+        "crack",
+    ],
+    "location": [
+        "arm",
+        "leg",
+        "face",
+        "back",
+        "chest",
+        "hand",
+        "foot",
+        "feet",
+        "neck",
+        "head",
+        "scalp",
+        "shoulder",
+        "stomach",
+        "belly",
+        "knee",
+        "elbow",
+        "finger",
+        "toe",
+        "thigh",
+        "shin",
+        "wrist",
+        "ankle",
+        "forehead",
+        "cheek",
+        "nose",
+        "ear",
+        "lip",
+        "palm",
+        "hip",
+        "groin",
+        "buttock",
+        "armpit",
+        "body",
+        "skin",
+    ],
+    "duration": [
+        "day",
+        "days",
+        "week",
+        "weeks",
+        "month",
+        "months",
+        "year",
+        "years",
+        "yesterday",
+        "today",
+        "last week",
+        "last month",
+        "long time",
+        "few days",
+        "couple days",
+        "since",
+        "ago",
+        "recently",
+        "just started",
+        "morning",
+        "night",
+        "hours",
+    ],
+    "progression": [
+        "worse",
+        "better",
+        "same",
+        "spreading",
+        "growing",
+        "shrinking",
+        "bigger",
+        "smaller",
+        "more",
+        "less",
+        "changing",
+        "not changing",
+        "stays",
+        "increased",
+        "decreased",
+        "getting",
+    ],
+    "symptoms": [
+        "itch",
+        "itchy",
+        "itching",
+        "hurt",
+        "hurts",
+        "pain",
+        "painful",
+        "burn",
+        "burns",
+        "burning",
+        "sting",
+        "stinging",
+        "bleed",
+        "bleeding",
+        "ooze",
+        "oozing",
+        "swell",
+        "swollen",
+        "tender",
+        "sore",
+        "numb",
+        "tingle",
+        "tingling",
+        "hot",
+        "warm",
+        "throb",
+        "throbbing",
+    ],
+}
+
 
 class PatientInterviewAgent:
     """Conversational agent for patient interviews.
@@ -58,16 +222,9 @@ class PatientInterviewAgent:
         session: PatientSession,
         stt_result: STTResult,
     ) -> str:
-        """Process a patient utterance and return the agent's response.
-
-        Args:
-            session: Current patient session.
-            stt_result: Transcribed speech from the patient.
-
-        Returns:
-            Agent response text (to be synthesized via TTS).
-        """
+        """Process a patient utterance and return the agent's response."""
         session.add_transcript(stt_result.text)
+        session.conversation.append({"role": "patient", "text": stt_result.text})
 
         # Check for de-escalation keywords
         if self._should_deescalate(stt_result.text):
@@ -76,17 +233,20 @@ class PatientInterviewAgent:
                 session_id=session.session_id,
                 text_snippet=stt_result.text[:50],
             )
-            return self._deescalation_response()
+            response = self._deescalation_response()
+            session.conversation.append({"role": "assistant", "text": response})
+            return response
 
         # Generate response based on stage
         if session.stage == SessionStage.GREETING:
-            return await self._handle_greeting(session, stt_result)
-        elif session.stage == SessionStage.INTERVIEW:
-            return await self._handle_interview(session, stt_result)
+            response = await self._handle_greeting(session, stt_result)
         elif session.stage == SessionStage.IMAGE_CONSENT:
-            return await self._handle_consent(session, stt_result)
+            response = await self._handle_consent(session, stt_result)
         else:
-            return await self._handle_interview(session, stt_result)
+            response = await self._handle_interview(session, stt_result)
+
+        session.conversation.append({"role": "assistant", "text": response})
+        return response
 
     async def _handle_greeting(
         self,
@@ -116,28 +276,127 @@ class PatientInterviewAgent:
         session: PatientSession,
         stt_result: STTResult,
     ) -> str:
-        """Handle the interview phase — extract symptoms."""
-        response = await self._model.generate(
-            prompt=(
-                f"Patient says: '{stt_result.text}'\n\n"
-                "You are a medical triage assistant (NOT a doctor). "
-                "Ask a follow-up question to better understand the skin condition. "
-                "Keep your response simple and clear for an illiterate patient. "
-                "If you have enough information, say 'I would like to take a photo "
-                "of the affected area to help the doctor.'"
-            ),
+        """Handle the interview phase — ask one question at a time."""
+        # Extract topics from the latest patient utterance and merge
+        new_topics = self._extract_topics(stt_result.text)
+        for topic, matched in new_topics.items():
+            if topic not in session.answered_topics:
+                session.answered_topics[topic] = matched
+
+        logger.info(
+            "topics_tracked",
+            session_id=session.session_id,
+            answered=list(session.answered_topics.keys()),
+            new=list(new_topics.keys()),
         )
 
-        # Check if we should request image consent
-        if self._should_request_image(response.text, session):
+        # If all topics covered, go straight to image consent
+        unanswered = [t for t in TOPIC_QUESTIONS if t not in session.answered_topics]
+        if not unanswered and self._should_request_image("enough information", session):
             session.advance_to(SessionStage.IMAGE_CONSENT)
             return (
                 "Thank you for telling me about your condition. "
                 "I would like to take a photo of the affected area to help the doctor. "
-                "Is that okay with you? Please say yes or no."
+                "Is that okay with you?"
             )
 
-        return response.text + f"\n\n{DISCLAIMER}"
+        # Build dynamic prompt with answered/unanswered sections
+        prompt = self._build_dynamic_prompt(session, unanswered)
+
+        response = await self._model.generate(
+            prompt=prompt,
+            temperature=0.2,
+        )
+
+        # Clean up — take only the first sentence/question
+        text = response.text.strip()
+        # Remove any "Assistant:" prefix the model might echo
+        if text.lower().startswith("assistant:"):
+            text = text[len("assistant:") :].strip()
+        # Take first sentence only
+        for end_char in ["?", ".", "!"]:
+            idx = text.find(end_char)
+            if idx != -1:
+                text = text[: idx + 1]
+                break
+
+        # Check if we have enough info to suggest photo
+        if self._should_request_image(text, session):
+            session.advance_to(SessionStage.IMAGE_CONSENT)
+            return (
+                "Thank you for telling me about your condition. "
+                "I would like to take a photo of the affected area to help the doctor. "
+                "Is that okay with you?"
+            )
+
+        logger.info(
+            "interview_question",
+            session_id=session.session_id,
+            turn=len(session.conversation),
+            question=text[:80],
+            answered_topics=list(session.answered_topics.keys()),
+            remaining_topics=unanswered,
+        )
+
+        return text
+
+    def _extract_topics(self, text: str) -> dict[str, str]:
+        """Extract interview topics from patient text using keyword matching.
+
+        Returns dict of topic name to matched phrase snippet.
+        Simple keyword matching is intentional — patients are illiterate
+        and use basic terms.
+        """
+        text_lower = text.lower()
+        detected: dict[str, str] = {}
+
+        for topic, keywords in TOPIC_KEYWORDS.items():
+            for kw in keywords:
+                if kw in text_lower:
+                    # Capture a snippet around the keyword for context
+                    idx = text_lower.index(kw)
+                    start = max(0, idx - 10)
+                    end = min(len(text), idx + len(kw) + 10)
+                    detected[topic] = text[start:end].strip()
+                    break
+
+        return detected
+
+    def _build_dynamic_prompt(
+        self,
+        session: PatientSession,
+        unanswered: list[str],
+    ) -> str:
+        """Build interview prompt with explicit answered/unanswered sections."""
+        lines = [INTERVIEW_SYSTEM_BASE]
+
+        # Show what's already been answered
+        if session.answered_topics:
+            lines.append("\nWhat the patient has told you so far:")
+            for topic, snippet in session.answered_topics.items():
+                label = TOPIC_QUESTIONS.get(topic, topic)
+                lines.append(f'- {label} → Patient said: "{snippet}"')
+
+        # Show what still needs to be asked
+        if unanswered:
+            lines.append("\nYou still need to ask about:")
+            for topic in unanswered:
+                lines.append(f"- {TOPIC_QUESTIONS[topic]}")
+            lines.append("\nAsk the FIRST unanswered question from the list above.")
+        else:
+            lines.append(
+                "\nAll topics are covered. Respond with: "
+                '"Thank you. I have enough information. Let us take a photo now."'
+            )
+
+        # Append conversation history
+        lines.append("\nConversation so far:")
+        for turn in session.conversation:
+            role = "Patient" if turn["role"] == "patient" else "Assistant"
+            lines.append(f"{role}: {turn['text']}")
+        lines.append("\nAssistant:")
+
+        return "\n".join(lines)
 
     async def _handle_consent(
         self,
@@ -149,13 +408,10 @@ class PatientInterviewAgent:
         if any(word in text_lower for word in ["yes", "ok", "okay", "sure", "fine"]):
             session.grant_image_consent()
             session.advance_to(SessionStage.IMAGE_CAPTURE)
-            return "Thank you. I will now take a photo. Please hold still."
+            return "Thank you. Please take a photo of the affected area now."
         else:
             session.advance_to(SessionStage.INTERVIEW)
-            return (
-                "That is okay. We will continue without a photo. "
-                "Can you describe what the affected area looks like?"
-            )
+            return "That is okay. Can you describe what the affected area looks like?"
 
     def _should_request_image(
         self,
@@ -165,8 +421,15 @@ class PatientInterviewAgent:
         """Determine if we should request image consent."""
         if session.image_consent_given:
             return False
-        # After 3+ transcript entries, suggest image
-        return len(session.transcript) >= 3
+        # Model explicitly says it has enough info
+        if "enough information" in response_text.lower() or "take a photo" in response_text.lower():
+            return True
+        # Most interview topics covered — move to image
+        if len(session.answered_topics) >= 4:
+            return True
+        # After 5+ patient utterances, suggest photo
+        patient_turns = sum(1 for t in session.conversation if t["role"] == "patient")
+        return patient_turns >= 5
 
     def _should_deescalate(self, text: str) -> bool:
         """Check if the patient's description suggests a non-medical case."""
@@ -178,19 +441,11 @@ class PatientInterviewAgent:
         return (
             "It sounds like what you are describing may not be a skin condition. "
             "Things like paint, tattoos, or henna are not medical issues. "
-            "If you have a different concern, I am happy to help. "
-            "Otherwise, there is nothing to worry about."
+            "If you have a different concern, I am happy to help."
         )
 
     def check_escalation(self, soap_text: str) -> str | None:
-        """Check if a SOAP note warrants immediate escalation.
-
-        Args:
-            soap_text: Combined SOAP note text.
-
-        Returns:
-            Escalation reason if needed, None otherwise.
-        """
+        """Check if a SOAP note warrants immediate escalation."""
         text_lower = soap_text.lower()
         for keyword in ESCALATION_KEYWORDS:
             if keyword in text_lower:

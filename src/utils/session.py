@@ -42,12 +42,14 @@ class PatientSession(BaseModel):
     detected_language: str = ""
     language_confidence: float = 0.0
     transcript: list[str] = Field(default_factory=list)
+    conversation: list[dict[str, str]] = Field(default_factory=list)
     image_consent_given: bool = False
     captured_images: list[str] = Field(default_factory=list)
     soap_note_id: str = ""
     escalated: bool = False
     escalation_reason: str = ""
     image_analysis: str = ""
+    answered_topics: dict[str, str] = Field(default_factory=dict)
 
     def advance_to(self, stage: SessionStage) -> None:
         """Advance session to a new stage."""
