@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAudioRecorder } from '../../hooks/useAudioRecorder'
 import api from '../../lib/api'
@@ -14,19 +14,55 @@ interface ChatMessage {
 export default function VoiceSession() {
   const { caseId } = useParams<{ caseId: string }>()
   const navigate = useNavigate()
-  const { recording, start, stop } = useAudioRecorder()
+  const { recording, ready, start, stop } = useAudioRecorder()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [processing, setProcessing] = useState(false)
   const [stage, setStage] = useState('in_progress')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const greetedRef = useRef(false)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  // Fetch and play greeting on mount
+  useEffect(() => {
+    if (greetedRef.current || !caseId) return
+    greetedRef.current = true
+
+    const fetchGreeting = async () => {
+      try {
+        setProcessing(true)
+        const res = await api.post(`/cases/${caseId}/greet`)
+
+        let audioUrl: string | undefined
+        if (res.data.audio_base64) {
+          const audioBytes = Uint8Array.from(atob(res.data.audio_base64), (c) => c.charCodeAt(0))
+          const audioBlob = new Blob([audioBytes], { type: `audio/${res.data.audio_format || 'wav'}` })
+          audioUrl = URL.createObjectURL(audioBlob)
+        }
+
+        setMessages([{ role: 'system', text: res.data.response, audioUrl }])
+        setStage(res.data.stage)
+
+        if (audioUrl) {
+          const audio = new Audio(audioUrl)
+          audio.play().catch(() => {})
+        }
+      } catch {
+        setMessages([{ role: 'system', text: 'Hello, I am a health assistant. Please press and hold the microphone button to speak.' }])
+      } finally {
+        setProcessing(false)
+      }
+    }
+
+    fetchGreeting()
+  }, [caseId])
+
   const handleRelease = async () => {
     const blob = await stop()
-    if (blob.size === 0) return
+    // Skip if empty or too small (just WebM header, no real audio)
+    if (blob.size < 1000) return
 
     setProcessing(true)
     const formData = new FormData()
@@ -38,19 +74,24 @@ export default function VoiceSession() {
       })
 
       // Add patient message (from STT)
-      setMessages((prev) => [...prev, { role: 'patient', text: '(audio recorded)' }])
+      setMessages((prev) => [...prev, { role: 'patient', text: res.data.stt_text || '(audio recorded)' }])
 
       // Add system response with audio
-      const audioBytes = Uint8Array.from(atob(res.data.audio_base64), (c) => c.charCodeAt(0))
-      const audioBlob = new Blob([audioBytes], { type: `audio/${res.data.audio_format || 'wav'}` })
-      const audioUrl = URL.createObjectURL(audioBlob)
+      let audioUrl: string | undefined
+      if (res.data.audio_base64) {
+        const audioBytes = Uint8Array.from(atob(res.data.audio_base64), (c) => c.charCodeAt(0))
+        const audioBlob = new Blob([audioBytes], { type: `audio/${res.data.audio_format || 'wav'}` })
+        audioUrl = URL.createObjectURL(audioBlob)
+      }
 
       setMessages((prev) => [...prev, { role: 'system', text: res.data.response, audioUrl }])
       setStage(res.data.stage)
 
       // Auto-play response
-      const audio = new Audio(audioUrl)
-      audio.play().catch(() => {})
+      if (audioUrl) {
+        const audio = new Audio(audioUrl)
+        audio.play().catch(() => {})
+      }
 
       scrollToBottom()
     } catch {
@@ -74,13 +115,7 @@ export default function VoiceSession() {
               onClick={() => navigate(`/patient/session/${caseId}/image`)}
               className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
             >
-              Capture Image
-            </button>
-            <button
-              onClick={() => navigate(`/patient/session/${caseId}/result`)}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700"
-            >
-              Complete
+              Take Photo & Assess
             </button>
           </div>
         </div>
@@ -89,8 +124,8 @@ export default function VoiceSession() {
       <main className="flex-1 max-w-3xl mx-auto w-full px-4 py-6 flex flex-col">
         {/* Chat messages */}
         <div className="flex-1 space-y-4 overflow-y-auto mb-6">
-          {messages.length === 0 && (
-            <p className="text-center text-gray-500 mt-8">Hold the microphone button and speak to begin the interview.</p>
+          {messages.length === 0 && !processing && (
+            <p className="text-center text-gray-500 mt-8">Starting session...</p>
           )}
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'patient' ? 'justify-end' : 'justify-start'}`}>
@@ -110,9 +145,11 @@ export default function VoiceSession() {
             recording={recording}
             onPress={start}
             onRelease={handleRelease}
-            disabled={processing}
+            disabled={processing || !ready}
           />
-          <p className="text-xs text-gray-400 mt-2">Hold to talk, release to send</p>
+          <p className="text-xs text-gray-400 mt-2">
+            {!ready ? 'Waiting for microphone access...' : 'Hold to talk, release to send'}
+          </p>
         </div>
       </main>
     </div>

@@ -13,13 +13,18 @@ from typing import Any
 
 import numpy as np
 import structlog
+from numpy.typing import NDArray
 
 from src.observability.alerts import AlertEvaluator
 from src.observability.audit import AuditTrail
 from src.observability.log_buffer import LogBuffer, LogRecord, get_log_buffer
 from src.observability.metrics import MetricsCollector, get_metrics_collector
 from src.observability.safety_evaluator import SafetyEvaluator
-from src.observability.vector_projection import compute_2d_projection
+from src.observability.vector_projection import (
+    ProjectionMethod,
+    compute_2d_projection,
+    project_single_point,
+)
 from src.utils.config import settings
 from src.utils.session import SessionStore
 
@@ -97,25 +102,87 @@ class DashboardAggregator:
             "icd_code_counts": icd_codes,
         }
 
-    def get_vector_space(self, max_points: int = 500) -> dict[str, Any]:
-        """2D PCA projection of vector index embeddings."""
+    def get_vector_space(self, max_points: int = 500, method: str = "pca") -> dict[str, Any]:
+        """2D projection of vector index embeddings."""
         index = self._state.vector_index
         if index is None or index.size == 0:
-            return {"points": [], "total_embeddings": 0, "sampled": 0}
+            return {"points": [], "total_embeddings": 0, "sampled": 0, "method": method}
+
+        try:
+            proj_method = ProjectionMethod(method)
+        except ValueError:
+            proj_method = ProjectionMethod.pca
 
         # Extract embeddings and metadata from index
         try:
             embeddings = np.array(index._embeddings, dtype=np.float32)
             metadata = list(index._metadata)
-            result = compute_2d_projection(embeddings, metadata, max_points)
+            result = compute_2d_projection(embeddings, metadata, max_points, proj_method)
             return {
                 "points": result.points,
                 "total_embeddings": result.total_embeddings,
                 "sampled": result.sampled,
+                "method": result.method,
             }
         except (AttributeError, ValueError) as exc:
             logger.debug("vector_projection_failed", error=str(exc))
-            return {"points": [], "total_embeddings": 0, "sampled": 0, "error": str(exc)}
+            return {
+                "points": [],
+                "total_embeddings": 0,
+                "sampled": 0,
+                "method": method,
+                "error": str(exc),
+            }
+
+    def get_case_overlay(
+        self,
+        case_embeddings: NDArray[np.float32],
+        case_metadata: list[dict[str, Any]],
+        max_points: int = 500,
+        method: str = "pca",
+    ) -> dict[str, Any]:
+        """Project case embedding(s) alongside the SCIN reference set."""
+        index = self._state.vector_index
+        if index is None or index.size == 0:
+            return {
+                "points": [],
+                "total_embeddings": 0,
+                "sampled": 0,
+                "method": method,
+                "error": "No SCIN embeddings indexed",
+            }
+
+        try:
+            proj_method = ProjectionMethod(method)
+        except ValueError:
+            proj_method = ProjectionMethod.pca
+
+        try:
+            ref_embeddings = np.array(index._embeddings, dtype=np.float32)
+            ref_metadata = list(index._metadata)
+            result = project_single_point(
+                ref_embeddings,
+                ref_metadata,
+                case_embeddings,
+                case_metadata,
+                max_points,
+                proj_method,
+            )
+            return {
+                "points": result.points,
+                "total_embeddings": result.total_embeddings,
+                "sampled": result.sampled,
+                "method": result.method,
+            }
+        except (AttributeError, ValueError) as exc:
+            logger.debug("case_overlay_failed", error=str(exc))
+            return {
+                "points": [],
+                "total_embeddings": 0,
+                "sampled": 0,
+                "method": method,
+                "error": str(exc),
+            }
 
     def get_safety_metrics(self) -> dict[str, Any]:
         """Safety pass rate, violations, escalation rate."""

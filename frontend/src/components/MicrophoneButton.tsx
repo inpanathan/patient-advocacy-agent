@@ -1,3 +1,5 @@
+import { useCallback } from 'react'
+
 interface Props {
   recording: boolean
   onPress: () => void
@@ -6,14 +8,33 @@ interface Props {
 }
 
 export default function MicrophoneButton({ recording, onPress, onRelease, disabled }: Props) {
+  // Use onPointerDown/Up to unify touch and mouse — avoids the
+  // double-fire problem where both onTouchStart+onMouseDown trigger.
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (disabled) return
+      // Capture the pointer so pointerup fires even if finger moves off button
+      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+      onPress()
+    },
+    [disabled, onPress],
+  )
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      if (disabled) return
+      ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
+      onRelease()
+    },
+    [disabled, onRelease],
+  )
+
   return (
     <button
-      onMouseDown={!disabled ? onPress : undefined}
-      onMouseUp={!disabled ? onRelease : undefined}
-      onTouchStart={!disabled ? onPress : undefined}
-      onTouchEnd={!disabled ? onRelease : undefined}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
       disabled={disabled}
-      className={`w-24 h-24 rounded-full flex items-center justify-center text-4xl shadow-lg transition-all select-none
+      className={`w-24 h-24 rounded-full flex items-center justify-center text-4xl shadow-lg transition-all select-none touch-none
         ${recording
           ? 'bg-red-500 text-white scale-110 animate-pulse'
           : disabled
@@ -22,7 +43,7 @@ export default function MicrophoneButton({ recording, onPress, onRelease, disabl
         }`}
       aria-label={recording ? 'Recording... release to stop' : 'Hold to record'}
     >
-      {recording ? '&#9899;' : '&#127908;'}
+      {recording ? '\u26AB' : '\uD83C\uDFA4'}
     </button>
   )
 }

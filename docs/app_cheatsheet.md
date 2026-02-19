@@ -8,17 +8,31 @@
 | URL | Description |
 |---|---|
 | `http://localhost:5173` | Frontend (React dev server, proxies API to backend) |
-| `http://localhost:8000` | Backend API root |
-| `http://localhost:8000/health` | Health check |
-| `http://localhost:8000/docs` | Swagger/OpenAPI docs |
-| `http://localhost:8000/redoc` | ReDoc API docs |
+| `http://localhost:8001` | Backend API root |
+| `http://localhost:8001/health` | Health check |
+| `http://localhost:8001/docs` | Swagger/OpenAPI docs |
+| `http://localhost:8001/redoc` | ReDoc API docs |
+
+### Dev Login Credentials
+
+Seeded by `bash scripts/db_seed.sh`. Password for all accounts: `test`
+
+| Email | Role | Facility |
+|---|---|---|
+| `admin@test.com` | admin | Tamil Nadu Village Clinic |
+| `admin2@test.com` | admin | Karnataka Health Post |
+| `doctor1@test.com` | doctor | — (pool: South Asia Region 1) |
+| `doctor2@test.com` | doctor | — (pool: South Asia Region 1) |
+| `doctor3@test.com` | doctor | — (pool: South Asia Region 1) |
+
+> **TODO:** Implement admin and doctor sign-up flows so accounts can be created without seeding.
 
 ### Monitoring Dashboard
 | URL | Description |
 |---|---|
-| `http://localhost:8000/dashboard` | Overview dashboard (health, alerts, vector space, safety, bias) |
-| `http://localhost:8000/dashboard/logs` | Log Viewer (search/filter structured logs) |
-| `http://localhost:8000/dashboard/metrics` | Metrics Explorer (time-series, API calls, errors) |
+| `http://localhost:8001/dashboard` | Overview dashboard (health, alerts, vector space, safety, bias) |
+| `http://localhost:8001/dashboard/logs` | Log Viewer (search/filter structured logs) |
+| `http://localhost:8001/dashboard/metrics` | Metrics Explorer (time-series, API calls, errors) |
 
 ### Dashboard API Endpoints (prefix: `/api/v1/dashboard`)
 | Method | Endpoint | Description |
@@ -49,7 +63,7 @@
 
 ```bash
 # Start development server
-uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn main:app --reload --host 0.0.0.0 --port 8001
 
 # Run all tests
 uv run pytest tests/
@@ -198,7 +212,7 @@ bash scripts/start_server.sh production
 # Backend — Docker
 bash scripts/start_server.sh docker
 
-# Frontend — dev server (proxies /api to backend on :8000)
+# Frontend — dev server (proxies /api to backend on :8001)
 bash frontend/scripts/start.sh           # http://localhost:5173
 
 # Frontend — production build
@@ -214,7 +228,7 @@ bash frontend/scripts/stop.sh
 bash scripts/start_voice_pipeline.sh
 ```
 
-**Typical dev workflow:** Start the backend first (`bash scripts/start_server.sh`), then in a second terminal start the frontend (`bash frontend/scripts/start.sh`). The Vite dev server on port 5173 proxies API calls to the backend on port 8000. Press `b` to background either process, or `q` to stop. You can also stop the frontend later with `bash frontend/scripts/stop.sh`.
+**Typical dev workflow:** Start the backend first (`bash scripts/start_server.sh`), then in a second terminal start the frontend (`bash frontend/scripts/start.sh`). The Vite dev server on port 5173 proxies API calls to the backend on port 8001. Press `b` to background either process, or `q` to stop. You can also stop the frontend later with `bash frontend/scripts/stop.sh`.
 
 ### Data & Embeddings
 

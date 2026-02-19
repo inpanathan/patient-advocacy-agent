@@ -22,24 +22,24 @@ case "$MODE" in
     export SERVICE_NAME="Server ($MODE)"
     export PIDFILE="$PROJECT_ROOT/.server.pid"
     export LOGFILE="$PROJECT_ROOT/.server.log"
-    export CMD="uv run uvicorn main:create_app --factory --reload --host 0.0.0.0 --port 8000"
+    export CMD="uv run uvicorn main:create_app --factory --reload --host 0.0.0.0 --port 8001"
     ;;
   staging)
     export SERVICE_NAME="Server ($MODE)"
     export PIDFILE="$PROJECT_ROOT/.server.pid"
     export LOGFILE="$PROJECT_ROOT/.server.log"
-    export CMD="APP_ENV=staging uv run uvicorn main:create_app --factory --host 0.0.0.0 --port 8000 --workers 2"
+    export CMD="APP_ENV=staging uv run uvicorn main:create_app --factory --host 0.0.0.0 --port 8001 --workers 2"
     ;;
   production)
     export SERVICE_NAME="Server ($MODE)"
     export PIDFILE="$PROJECT_ROOT/.server.pid"
     export LOGFILE="$PROJECT_ROOT/.server.log"
-    export CMD="APP_ENV=production uv run uvicorn main:create_app --factory --host 0.0.0.0 --port 8000 --workers 4"
+    export CMD="APP_ENV=production uv run uvicorn main:create_app --factory --host 0.0.0.0 --port 8001 --workers 4"
     ;;
   docker)
     echo "Starting server via Docker..."
     docker compose up --build -d
-    echo "Server running at http://localhost:8000"
+    echo "Server running at http://localhost:8001"
     echo "Logs: docker compose logs -f"
     exit 0
     ;;

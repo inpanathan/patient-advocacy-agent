@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: F821
         try:
             loader = SCINLoader(settings.scin.data_dir)
             records = loader.load()
-            index_scin_records(records, index)
+            index_scin_records(records, index, data_dir=settings.scin.data_dir)
             logger.info("scin_data_loaded", record_count=index.size)
         except Exception as exc:
             logger.warning("scin_load_failed", error=str(exc))

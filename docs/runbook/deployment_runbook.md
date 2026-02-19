@@ -205,7 +205,7 @@ See `docs/app_cheatsheet.md` for dashboard links.
 
 ### Health Check
 ```bash
-curl http://localhost:8000/health
+curl http://localhost:8001/health
 # {"status": "ok", "env": "development", "version": "0.1.0"}
 ```
 

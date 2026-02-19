@@ -70,8 +70,10 @@ class LocalTTS:
         try:
             cmd = [
                 "piper",
-                "--model", str(model_path),
-                "--output_file", out_path,
+                "--model",
+                str(model_path),
+                "--output_file",
+                out_path,
             ]
             if config_path.exists():
                 cmd.extend(["--config", str(config_path)])
@@ -92,6 +94,15 @@ class LocalTTS:
                 return TTSResult(audio_bytes=b"", format="wav", duration_ms=0)
 
             audio_bytes = Path(out_path).read_bytes()
+        except subprocess.TimeoutExpired:
+            logger.warning(
+                "piper_tts_timeout",
+                language=language,
+                voice=voice,
+                text_len=len(text),
+                timeout=settings.voice.tts_timeout_seconds,
+            )
+            return TTSResult(audio_bytes=b"", format="wav", duration_ms=0)
         finally:
             Path(out_path).unlink(missing_ok=True)
 

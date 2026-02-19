@@ -11,7 +11,7 @@ logging:
 
 server:
   host: "127.0.0.1"
-  port: 8000
+  port: 8001
   reload: true
   workers: 1
 
@@ -21,11 +21,6 @@ llm:
 
 database:
   enabled: true
-  host: localhost
-  port: 5432
-  name: patient_advocacy
-  user: patient_advocacy
-  password: ""
   pool_size: 5
   echo: true
 

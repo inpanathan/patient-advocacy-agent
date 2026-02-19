@@ -1,3 +1,4 @@
+
 # Patient Advocacy Agent
 
 An agentic system providing dermatological triage via voice-only interface for
@@ -124,10 +125,10 @@ audio/video processing (WebRTC, OPUS, VP8).
 uv run python main.py
 
 # Health check
-curl http://localhost:8000/health
+curl http://localhost:8001/health
 
 # API documentation (dev mode only)
-open http://localhost:8000/docs
+open http://localhost:8001/docs
 ```
 
 ## Training

@@ -6,11 +6,18 @@ consumed by the dashboard HTML pages.
 
 from __future__ import annotations
 
+import uuid
 from typing import Any
 
+import numpy as np
+import structlog
 from fastapi import APIRouter, Query, Request
 
+from src.db.engine import get_session_factory
+from src.db.models import Case, CaseImage
 from src.observability.dashboard_aggregator import DashboardAggregator
+
+logger = structlog.get_logger(__name__)
 
 router = APIRouter(tags=["dashboard"])
 
@@ -36,9 +43,76 @@ async def performance(request: Request) -> dict[str, Any]:
 async def vector_space(
     request: Request,
     max_points: int = Query(default=500, ge=10, le=5000),
+    method: str = Query(default="pca", pattern="^(pca|tsne|umap)$"),
 ) -> dict[str, Any]:
-    """2D PCA scatter data for vector index visualization."""
-    return _aggregator(request).get_vector_space(max_points)
+    """2D projection scatter data for vector index visualization."""
+    return _aggregator(request).get_vector_space(max_points, method)
+
+
+@router.get("/case-overlay")
+async def case_overlay(
+    request: Request,
+    case_id: str = Query(..., description="Case UUID"),
+    method: str = Query(default="pca", pattern="^(pca|tsne|umap)$"),
+    max_points: int = Query(default=500, ge=10, le=5000),
+) -> dict[str, Any]:
+    """Project a case's image embeddings alongside the SCIN reference set."""
+    # Validate UUID
+    try:
+        case_uuid = uuid.UUID(case_id)
+    except ValueError:
+        return {"error": f"Invalid case ID: {case_id}", "points": []}
+
+    # Fetch case and its images from DB
+    try:
+        factory = get_session_factory()
+    except RuntimeError:
+        return {"error": "Database not available", "points": []}
+
+    async with factory() as session:
+        from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
+
+        stmt = select(Case).where(Case.id == case_uuid).options(selectinload(Case.images))
+        result = await session.execute(stmt)
+        case: Case | None = result.scalar_one_or_none()
+
+    if case is None:
+        return {"error": f"Case not found: {case_id}", "points": []}
+
+    images: list[CaseImage] = list(case.images) if case.images else []
+    if not images:
+        return {"error": "Case has no images", "points": []}
+
+    # Embed each case image
+    try:
+        from src.models.embedding_model import get_embedding_model
+
+        model = get_embedding_model()
+        embeddings_list = []
+        case_meta = []
+        for img in images:
+            emb = model.embed_image(img.file_path)
+            embeddings_list.append(emb)
+            case_meta.append(
+                {
+                    "diagnosis": ", ".join(case.icd_codes) if case.icd_codes else "Case image",
+                    "icd_code": ", ".join(case.icd_codes) if case.icd_codes else "",
+                    "fitzpatrick_type": "",
+                    "record_id": str(case.id),
+                }
+            )
+        case_embeddings = np.stack(embeddings_list).astype(np.float32)
+    except Exception as exc:
+        logger.warning("case_overlay_embed_failed", error=str(exc), case_id=case_id)
+        return {"error": f"Failed to embed case images: {exc}", "points": []}
+
+    return _aggregator(request).get_case_overlay(
+        case_embeddings,
+        case_meta,
+        max_points,
+        method,
+    )
 
 
 @router.get("/safety")

@@ -32,7 +32,7 @@ packages = ["src"]
 
 ### 7. Health check fails in Docker
 **Cause:** Application not ready or port mismatch.
-**Fix:** Check `docker compose logs app` and verify port 8000 is exposed.
+**Fix:** Check `docker compose logs app` and verify port 8001 is exposed.
 
 ### 8. High prediction latency alert
 **Cause:** Model inference or RAG retrieval is slow.
@@ -50,7 +50,7 @@ packages = ["src"]
 
 ```bash
 # Check application health
-curl http://localhost:8000/health
+curl http://localhost:8001/health
 
 # View structured logs
 docker compose logs app | jq .

@@ -68,7 +68,7 @@ class VoiceSettings(BaseSettings):
         default=["hi", "bn", "ta", "sw", "es"],
     )
     stt_timeout_seconds: int = 15
-    tts_timeout_seconds: int = 15
+    tts_timeout_seconds: int = 60
     whisper_model_size: str = "large-v3"
     piper_voices_dir: str = "models/piper"
     google_cloud_project: str = ""
@@ -121,7 +121,7 @@ class ServerSettings(BaseSettings):
     """Application server configuration."""
 
     host: str = "0.0.0.0"
-    port: int = 8000
+    port: int = 8001
     workers: int = 1
     reload: bool = False
 

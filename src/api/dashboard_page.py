@@ -60,7 +60,27 @@ async def dashboard_overview() -> str:
 <!-- Row 4: Vector space (full width) -->
 <div class="grid grid-full" style="margin-top:16px;">
   <div class="card">
-    <div class="card-title">Vector Space (PCA 2D Projection)</div>
+    <div class="card-title" id="vector-title">Vector Space (PCA 2D Projection)</div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;flex-wrap:wrap;">
+      <label style="font-size:12px;display:flex;align-items:center;gap:6px;">
+        Points: <span id="points-label" style="min-width:36px;font-weight:600;">500</span>
+        <input type="range" id="points-slider" min="10" max="5000" value="500" step="10" style="width:160px;">
+      </label>
+      <label style="font-size:12px;display:flex;align-items:center;gap:6px;">
+        Method:
+        <select id="method-select" style="padding:3px 6px;border-radius:4px;border:1px solid #555;background:#1e1e2e;color:#cdd6f4;font-size:12px;">
+          <option value="pca" selected>PCA</option>
+          <option value="tsne">t-SNE</option>
+          <option value="umap">UMAP</option>
+        </select>
+      </label>
+      <label style="font-size:12px;display:flex;align-items:center;gap:6px;">
+        Case overlay:
+        <input type="text" id="case-id-input" placeholder="Case UUID" style="padding:3px 6px;border-radius:4px;border:1px solid #555;background:#1e1e2e;color:#cdd6f4;font-size:12px;width:260px;">
+        <button id="case-overlay-btn" style="padding:3px 10px;border-radius:4px;border:1px solid #555;background:#313244;color:#cdd6f4;font-size:12px;cursor:pointer;">Show</button>
+        <button id="case-clear-btn" style="padding:3px 10px;border-radius:4px;border:1px solid #555;background:#313244;color:#cdd6f4;font-size:12px;cursor:pointer;display:none;">Clear</button>
+      </label>
+    </div>
     <div id="vector-chart" style="height:400px;"></div>
   </div>
 </div>
@@ -175,30 +195,103 @@ async function loadPerformance() {{
 }}
 
 async function loadVectorSpace() {{
-  const d = await fetchJSON(BASE + '/vector-space?max_points=500');
+  const slider = document.getElementById('points-slider');
+  const methodSel = document.getElementById('method-select');
+  const maxPts = slider ? slider.value : 500;
+  const method = methodSel ? methodSel.value : 'pca';
+  const d = await fetchJSON(BASE + `/vector-space?max_points=${{maxPts}}&method=${{method}}`);
   if (!d || d.points.length === 0) {{
     document.getElementById('vector-chart').innerHTML = '<div style="text-align:center;padding:120px 0;color:' + COLORS.text_muted + ';">No embeddings indexed</div>';
     return;
   }}
+  const usedMethod = (d.method || method).toUpperCase();
+  document.getElementById('vector-title').textContent = `Vector Space (${{usedMethod}} 2D Projection)`;
   // Group by diagnosis
   const groups = {{}};
   d.points.forEach(p => {{
     const key = p.diagnosis || 'Unknown';
-    if (!groups[key]) groups[key] = {{x:[], y:[], text:[]}};
+    if (!groups[key]) groups[key] = {{x:[], y:[], text:[], icd:[]}};
     groups[key].x.push(p.x);
     groups[key].y.push(p.y);
     groups[key].text.push(`${{p.diagnosis}} (${{p.icd_code}})\\nFitzpatrick: ${{p.fitzpatrick_type}}`);
+    groups[key].icd.push(p.icd_code || '');
   }});
   const traces = Object.entries(groups).map(([name, g]) => ({{
-    x: g.x, y: g.y, text: g.text, name: name,
-    mode: 'markers', type: 'scatter',
+    x: g.x, y: g.y, text: g.icd, name: name,
+    mode: 'markers+text', type: 'scatter',
     marker: {{ size: 6, opacity: 0.7 }},
-    hovertemplate: '%{{text}}<extra></extra>'
+    textposition: 'top center',
+    textfont: {{ size: 8, color: COLORS.text_muted }},
+    hovertext: g.text,
+    hovertemplate: '%{{hovertext}}<extra></extra>'
   }}));
   Plotly.newPlot('vector-chart', traces,
     {{...LAYOUT, title: `${{d.sampled}} of ${{d.total_embeddings}} embeddings`, showlegend: true,
       legend: {{font: {{size: 10}}, bgcolor: 'rgba(0,0,0,0)'}}}},
     {{responsive: true, displayModeBar: false}});
+}}
+
+async function loadCaseOverlay() {{
+  const caseIdInput = document.getElementById('case-id-input');
+  const caseId = caseIdInput ? caseIdInput.value.trim() : '';
+  if (!caseId) return;
+  const slider = document.getElementById('points-slider');
+  const methodSel = document.getElementById('method-select');
+  const maxPts = slider ? slider.value : 500;
+  const method = methodSel ? methodSel.value : 'pca';
+  const d = await fetchJSON(BASE + `/case-overlay?case_id=${{encodeURIComponent(caseId)}}&method=${{method}}&max_points=${{maxPts}}`);
+  if (!d || d.error) {{
+    alert(d && d.error ? d.error : 'Failed to load case overlay');
+    return;
+  }}
+  if (d.points.length === 0) return;
+  const usedMethod = (d.method || method).toUpperCase();
+  document.getElementById('vector-title').textContent = `Vector Space (${{usedMethod}} 2D Projection) — Case Overlay`;
+  // Split reference vs case points
+  const refGroups = {{}};
+  const casePts = {{x:[], y:[], text:[], icd:[]}};
+  d.points.forEach(p => {{
+    if (p.is_case) {{
+      casePts.x.push(p.x);
+      casePts.y.push(p.y);
+      casePts.text.push(`CASE: ${{p.diagnosis}} (${{p.icd_code}})`);
+      casePts.icd.push(p.icd_code || 'CASE');
+    }} else {{
+      const key = p.diagnosis || 'Unknown';
+      if (!refGroups[key]) refGroups[key] = {{x:[], y:[], text:[], icd:[]}};
+      refGroups[key].x.push(p.x);
+      refGroups[key].y.push(p.y);
+      refGroups[key].text.push(`${{p.diagnosis}} (${{p.icd_code}})\\nFitzpatrick: ${{p.fitzpatrick_type}}`);
+      refGroups[key].icd.push(p.icd_code || '');
+    }}
+  }});
+  const traces = Object.entries(refGroups).map(([name, g]) => ({{
+    x: g.x, y: g.y, text: g.icd, name: name,
+    mode: 'markers+text', type: 'scatter',
+    marker: {{ size: 6, opacity: 0.5 }},
+    textposition: 'top center',
+    textfont: {{ size: 8, color: COLORS.text_muted }},
+    hovertext: g.text,
+    hovertemplate: '%{{hovertext}}<extra></extra>'
+  }}));
+  // Add case overlay as star markers
+  if (casePts.x.length > 0) {{
+    traces.push({{
+      x: casePts.x, y: casePts.y, text: casePts.icd,
+      name: 'Case (overlay)',
+      mode: 'markers+text', type: 'scatter',
+      marker: {{ size: 16, symbol: 'star', color: '#f38ba8', line: {{ width: 2, color: '#fff' }} }},
+      textposition: 'top center',
+      textfont: {{ size: 10, color: '#f38ba8' }},
+      hovertext: casePts.text,
+      hovertemplate: '%{{hovertext}}<extra></extra>'
+    }});
+  }}
+  Plotly.newPlot('vector-chart', traces,
+    {{...LAYOUT, title: `${{d.sampled}} of ${{d.total_embeddings}} embeddings (case overlaid)`, showlegend: true,
+      legend: {{font: {{size: 10}}, bgcolor: 'rgba(0,0,0,0)'}}}},
+    {{responsive: true, displayModeBar: false}});
+  document.getElementById('case-clear-btn').style.display = 'inline';
 }}
 
 async function loadSafety() {{
@@ -289,5 +382,29 @@ async function refresh() {{
 
 refresh();
 setInterval(refresh, 30000);
+
+// Vector space controls
+const _slider = document.getElementById('points-slider');
+const _label = document.getElementById('points-label');
+const _methodSel = document.getElementById('method-select');
+const _caseBtn = document.getElementById('case-overlay-btn');
+const _caseClearBtn = document.getElementById('case-clear-btn');
+if (_slider) {{
+  _slider.addEventListener('input', () => {{ _label.textContent = _slider.value; }});
+  _slider.addEventListener('change', () => {{ loadVectorSpace(); }});
+}}
+if (_methodSel) {{
+  _methodSel.addEventListener('change', () => {{ loadVectorSpace(); }});
+}}
+if (_caseBtn) {{
+  _caseBtn.addEventListener('click', () => {{ loadCaseOverlay(); }});
+}}
+if (_caseClearBtn) {{
+  _caseClearBtn.addEventListener('click', () => {{
+    document.getElementById('case-id-input').value = '';
+    _caseClearBtn.style.display = 'none';
+    loadVectorSpace();
+  }});
+}}
 """
     return full_page("Overview", "overview", body, js)

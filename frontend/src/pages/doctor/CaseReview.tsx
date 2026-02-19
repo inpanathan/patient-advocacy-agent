@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import api from '../../lib/api'
 import StatusBadge from '../../components/StatusBadge'
+import CaseImage from '../../components/CaseImage'
 
 interface CaseDetail {
   id: string
@@ -30,7 +31,7 @@ export default function CaseReview() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    api.get(`/cases/${caseId}/summary`)
+    api.get(`/doctor/cases/${caseId}`)
       .then((res) => {
         setCaseData(res.data)
         setNotes(res.data.doctor_notes || '')
@@ -172,11 +173,9 @@ export default function CaseReview() {
           {caseData.images && caseData.images.length > 0 && (
             <div className="bg-white p-6 rounded-xl shadow-sm">
               <h2 className="text-lg font-semibold mb-3">Images ({caseData.images.length})</h2>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {caseData.images.map((img) => (
-                  <div key={img.id} className="p-2 border rounded-lg text-xs text-gray-500 font-mono truncate">
-                    {img.file_path.split('/').pop()}
-                  </div>
+                  <CaseImage key={img.id} caseId={caseId!} imageId={img.id} />
                 ))}
               </div>
             </div>

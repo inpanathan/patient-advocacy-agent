@@ -47,8 +47,17 @@ async def generate_soap_note(
         for r in rag_results.results[:5]:
             rag_context += f"- {r.diagnosis} (ICD: {r.icd_code}, similarity: {r.score:.2f})\n"
 
-    # Build transcript
-    transcript = "\n".join(session.transcript) if session.transcript else "No transcript available."
+    # Build structured transcript from conversation (Q&A pairs)
+    if session.conversation:
+        lines = []
+        for turn in session.conversation:
+            role = "Patient" if turn["role"] == "patient" else "Health Assistant"
+            lines.append(f"{role}: {turn['text']}")
+        transcript = "\n".join(lines)
+    elif session.transcript:
+        transcript = "\n".join(f"Patient: {t}" for t in session.transcript)
+    else:
+        transcript = "No transcript available."
 
     soap = await model.generate_soap(
         transcript=transcript,

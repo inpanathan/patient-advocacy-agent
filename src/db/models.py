@@ -170,12 +170,15 @@ class Patient(Base):
     """A patient record (no PII — uses pseudonymous identifiers)."""
 
     __tablename__ = "patients"
+    __table_args__ = (
+        UniqueConstraint("facility_id", "patient_number", name="uq_patients_facility_number"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     facility_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("facilities.id"), nullable=False
     )
-    patient_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    patient_number: Mapped[str] = mapped_column(String(50), nullable=False)
     age_range: Mapped[str | None] = mapped_column(String(20), nullable=True)
     sex: Mapped[Sex] = mapped_column(
         Enum(Sex, name="sex", native_enum=False), default=Sex.unknown, nullable=False

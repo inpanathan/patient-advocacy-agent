@@ -35,21 +35,20 @@ export default function CaseResult() {
       const res = await api.post(`/cases/${caseId}/complete`)
       setSummary(res.data)
     } catch {
-      setError('Failed to complete case')
+      setError('Failed to complete case. The photo may not have been uploaded yet.')
     } finally {
       setCompleting(false)
     }
   }
 
   useEffect(() => {
-    // Try to get existing summary first
     api.get(`/cases/${caseId}/summary`)
       .then((res) => setSummary(res.data))
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [caseId])
 
-  if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>
+  if (loading) return <div className="flex items-center justify-center h-screen">Loading assessment...</div>
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -57,18 +56,9 @@ export default function CaseResult() {
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button onClick={() => navigate('/patient/dashboard')} className="text-gray-600 hover:text-gray-900">&larr; Dashboard</button>
-            <h1 className="text-xl font-bold text-gray-900">Case Result</h1>
+            <h1 className="text-xl font-bold text-gray-900">Case Assessment</h1>
           </div>
           <div className="flex gap-3">
-            {!summary?.soap_note && (
-              <button
-                onClick={handleComplete}
-                disabled={completing}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700 disabled:opacity-50"
-              >
-                {completing ? 'Generating...' : 'Generate SOAP & Complete'}
-              </button>
-            )}
             {summary?.soap_note && (
               <button
                 onClick={() => window.print()}
@@ -94,8 +84,17 @@ export default function CaseResult() {
         {summary?.soap_note ? (
           <PrintableReport summary={summary} />
         ) : (
-          <div className="bg-white p-6 rounded-xl shadow-sm text-center">
-            <p className="text-gray-600">Click "Generate SOAP & Complete" to finalize this case and generate the clinical summary.</p>
+          <div className="bg-white p-6 rounded-xl shadow-sm text-center space-y-4">
+            <p className="text-gray-600">
+              No assessment available yet. Make sure a photo has been uploaded, then generate the assessment.
+            </p>
+            <button
+              onClick={handleComplete}
+              disabled={completing}
+              className="px-6 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 disabled:opacity-50"
+            >
+              {completing ? 'Generating assessment...' : 'Generate Assessment'}
+            </button>
           </div>
         )}
       </main>

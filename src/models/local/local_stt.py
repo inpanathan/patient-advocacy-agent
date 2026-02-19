@@ -45,19 +45,26 @@ class LocalSTT:
         )
         t0 = time.monotonic()
 
-        self._model = WhisperModel(model_size, device=device, compute_type=compute_type)
+        try:
+            self._model = WhisperModel(model_size, device=device, compute_type=compute_type)
+        except RuntimeError as exc:
+            if "out of memory" in str(exc).lower() and device == "cuda":
+                logger.warning("stt_cuda_oom_falling_back_to_cpu", error=str(exc))
+                device = "cpu"
+                compute_type = "int8"
+                self._model = WhisperModel(model_size, device=device, compute_type=compute_type)
+            else:
+                raise
 
         elapsed = int((time.monotonic() - t0) * 1000)
-        logger.info("local_stt_loaded", model_size=model_size, load_ms=elapsed)
+        logger.info("local_stt_loaded", model_size=model_size, device=device, load_ms=elapsed)
 
-    async def transcribe(
-        self, audio_bytes: bytes, *, language_hint: str = ""
-    ) -> STTResult:
+    async def transcribe(self, audio_bytes: bytes, *, language_hint: str = "") -> STTResult:
         """Transcribe audio bytes to text."""
         t0 = time.monotonic()
 
-        # Write audio to temp file (Faster-Whisper reads from file)
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+        # Write audio to temp file (Faster-Whisper reads from file via FFmpeg)
+        with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as f:
             f.write(audio_bytes)
             tmp_path = f.name
 
@@ -75,6 +82,10 @@ class LocalSTT:
             text = " ".join(text_parts)
             detected_language = info.language
             confidence = info.language_probability
+        except Exception as exc:
+            logger.warning("local_stt_decode_error", error=str(exc), audio_bytes=len(audio_bytes))
+            Path(tmp_path).unlink(missing_ok=True)
+            return STTResult(text="", language=language_hint or "en", confidence=0.0, duration_ms=0)
         finally:
             Path(tmp_path).unlink(missing_ok=True)
 

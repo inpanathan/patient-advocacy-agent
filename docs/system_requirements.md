@@ -57,10 +57,10 @@ brew install opus libvpx srtp ffmpeg pkg-config
 
 | Service | Port | Protocol | Purpose |
 |---------|------|----------|---------|
-| FastAPI | 8000 | HTTP | API server |
+| FastAPI | 8001 | HTTP | API server |
 | WebRTC | 3478 | UDP | STUN/TURN for voice + camera |
 | MLflow | 5000 | HTTP | Experiment tracking |
-| ChromaDB | 8001 | HTTP | Vector store (if remote) |
+| ChromaDB | 8002 | HTTP | Vector store (if remote) |
 
 ## Environment Variables
 

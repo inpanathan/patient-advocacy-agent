@@ -57,10 +57,49 @@ async def list_my_cases(
             soap_note=c.soap_note,
             icd_codes=c.icd_codes,
             doctor_notes=c.doctor_notes,
+            image_count=len(c.images) if c.images else 0,
             created_at=c.created_at,
         )
         for c in cases
     ]
+
+
+@router.get("/cases/{case_id}", response_model=CaseSummaryResponse)
+async def get_case_detail(
+    case_id: str,
+    user: User = Depends(require_role("doctor")),
+    session: AsyncSession = Depends(get_session),
+) -> CaseSummaryResponse:
+    """Get full case details for a doctor's assigned case."""
+    case_repo = CaseRepository(session)
+    case = await case_repo.get_case(uuid.UUID(case_id))
+    if case is None:
+        raise AppError(code=ErrorCode.NOT_FOUND, message="Case not found")
+    if case.doctor_id != user.id:
+        raise AppError(code=ErrorCode.FORBIDDEN, message="Not assigned to this case")
+
+    images = [
+        CaseImageResponse(
+            id=str(img.id),
+            file_path=img.file_path,
+            consent_given=img.consent_given,
+            rag_results=img.rag_results,
+            created_at=img.created_at,
+        )
+        for img in (case.images or [])
+    ]
+
+    return CaseSummaryResponse(
+        id=str(case.id),
+        case_number=case.case_number,
+        status=case.status.value,
+        soap_note=case.soap_note,
+        icd_codes=case.icd_codes,
+        interview_transcript=case.interview_transcript,
+        doctor_notes=case.doctor_notes,
+        escalated=case.escalated,
+        images=images,
+    )
 
 
 @router.put("/cases/{case_id}/review")
