@@ -138,6 +138,51 @@ bash scripts/download_piper_voices.sh en hi es
 
 **Note:** MedGemma 4B is a gated model. You must first run `huggingface-cli login` and accept the license at [the model page](https://huggingface.co/google/medgemma-4b-it).
 
+### Database Management
+
+```bash
+# Create PostgreSQL user + database (idempotent, needs sudo)
+sudo bash scripts/db_setup.sh
+
+# Generate initial migration from ORM models
+bash scripts/db_migrate.sh init
+
+# Apply all pending migrations
+bash scripts/db_migrate.sh upgrade
+
+# Generate a new migration after model changes
+bash scripts/db_migrate.sh generate "add column X to table Y"
+
+# Roll back one migration
+bash scripts/db_migrate.sh downgrade -1
+
+# Show migration status (current revision, pending)
+bash scripts/db_migrate.sh status
+
+# Seed development data (skip if already seeded)
+bash scripts/db_seed.sh
+
+# Seed with reset (truncate all tables first)
+bash scripts/db_seed.sh --reset
+
+# Full database health check (connection, tables, row counts, size)
+bash scripts/db_status.sh
+
+# Back up database (compressed custom format)
+bash scripts/db_backup.sh
+
+# Back up as plain SQL
+bash scripts/db_backup.sh --sql
+
+# Restore from backup (auto-detects format)
+bash scripts/db_restore.sh backups/<filename>
+
+# Nuclear reset: drop all, re-migrate, re-seed (blocked in production)
+bash scripts/db_reset.sh
+```
+
+**Database configuration** is read from `.env` — see the `DATABASE__*` variables. All destructive scripts (`db_reset.sh`, `db_restore.sh`) require typing "yes" to confirm and are blocked when `APP_ENV=production`.
+
 ### Starting the Application
 
 ```bash
@@ -230,21 +275,27 @@ bash scripts/setup.sh
 # 3. Install ML + voice dependencies
 uv pip install -e ".[ml,voice]"
 
-# 4. Login to Hugging Face (required for gated models like MedGemma)
+# 4. Setup PostgreSQL database
+sudo bash scripts/db_setup.sh        # Create user + database
+bash scripts/db_migrate.sh init       # Generate initial migration
+bash scripts/db_migrate.sh upgrade    # Apply migrations
+bash scripts/db_seed.sh               # Seed development data
+
+# 5. Login to Hugging Face (required for gated models like MedGemma)
 huggingface-cli login
 
-# 5. Download all model weights (~20GB)
+# 6. Download all model weights (~20GB)
 bash scripts/download_models.sh
 
-# 6. Download SCIN dataset (~2GB, no auth required)
+# 7. Download SCIN dataset (~2GB, no auth required)
 bash scripts/download_scin.sh
 
-# 7. Index SCIN embeddings into the vector store
+# 8. Index SCIN embeddings into the vector store
 bash scripts/index_embeddings.sh
 
-# 8. Start the server
+# 9. Start the server
 bash scripts/start_server.sh
 
-# 9. Verify with integration tests
+# 10. Verify with integration tests
 MODEL_BACKEND=local uv run pytest tests/integration/test_local_models.py -v
 ```
