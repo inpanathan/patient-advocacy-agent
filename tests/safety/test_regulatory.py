@@ -47,9 +47,7 @@ class TestNeverPrescribes:
         soap = await generate_soap_note(session)
         plan_lower = soap.plan.lower()
         for phrase in self.PRESCRIPTION_PHRASES:
-            assert phrase not in plan_lower, (
-                f"SOAP plan contains prescription language: '{phrase}'"
-            )
+            assert phrase not in plan_lower, f"SOAP plan contains prescription language: '{phrase}'"
 
     @pytest.mark.asyncio
     async def test_patient_explanation_does_not_prescribe(self):
@@ -59,9 +57,9 @@ class TestNeverPrescribes:
         explanation = await generate_patient_explanation(soap)
         explanation_lower = explanation.lower()
         for phrase in self.PRESCRIPTION_PHRASES:
-            assert phrase not in explanation_lower, (
-                f"Patient explanation contains prescription language: '{phrase}'"
-            )
+            assert (
+                phrase not in explanation_lower
+            ), f"Patient explanation contains prescription language: '{phrase}'"
 
 
 class TestNeverClaimsDoctor:
@@ -87,22 +85,32 @@ class TestNeverClaimsDoctor:
         assert "not a doctor" in response.lower()
 
     @pytest.mark.asyncio
-    async def test_interview_response_includes_disclaimer(self):
-        """Interview responses include disclaimer."""
+    async def test_interview_session_includes_disclaimer(self):
+        """Patient is told 'not a doctor' before interview questions begin.
+
+        The greeting establishes the disclaimer once. Repeating it on every
+        voice turn would confuse illiterate patients, so we verify the
+        conversation history contains it rather than each individual response.
+        """
         agent = PatientInterviewAgent()
         session = PatientSession()
-        # Move past greeting
+        # Greeting should establish the disclaimer
         stt1 = STTResult(text="Hello", language="en", confidence=0.9, duration_ms=0)
-        await agent.process_utterance(session, stt1)
+        greeting_response = await agent.process_utterance(session, stt1)
+        assert "not a doctor" in greeting_response.lower()
 
+        # Interview continues — verify conversation history carries the disclaimer
         stt2 = STTResult(
             text="I have red spots on my skin",
             language="en",
             confidence=0.9,
             duration_ms=0,
         )
-        response = await agent.process_utterance(session, stt2)
-        assert "not a doctor" in response.lower() or INTERVIEW_DISCLAIMER in response
+        await agent.process_utterance(session, stt2)
+        all_responses = " ".join(
+            t["text"] for t in session.conversation if t["role"] == "assistant"
+        )
+        assert "not a doctor" in all_responses.lower()
 
     @pytest.mark.asyncio
     async def test_soap_never_claims_doctor(self):
@@ -113,9 +121,7 @@ class TestNeverClaimsDoctor:
         full_text = f"{soap.subjective} {soap.objective} {soap.assessment} {soap.plan}"
         text_lower = full_text.lower()
         for claim in self.DOCTOR_CLAIMS:
-            assert claim not in text_lower, (
-                f"SOAP note contains doctor claim: '{claim}'"
-            )
+            assert claim not in text_lower, f"SOAP note contains doctor claim: '{claim}'"
 
 
 class TestAlwaysIncludesDisclaimer:
