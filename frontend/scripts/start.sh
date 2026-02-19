@@ -15,6 +15,25 @@ FRONTEND_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_ROOT="$(cd "$FRONTEND_DIR/.." && pwd)"
 
 MODE="${1:-dev}"
+PIDFILE="$PROJECT_ROOT/.frontend.pid"
+
+# Stop existing frontend process if running
+if [[ -f "$PIDFILE" ]]; then
+    OLD_PID=$(cat "$PIDFILE")
+    if kill -0 "$OLD_PID" 2>/dev/null; then
+        echo "Stopping existing frontend (PID: $OLD_PID)..."
+        kill "$OLD_PID" 2>/dev/null
+        for i in {1..10}; do
+            kill -0 "$OLD_PID" 2>/dev/null || break
+            sleep 0.5
+        done
+        if kill -0 "$OLD_PID" 2>/dev/null; then
+            kill -9 "$OLD_PID" 2>/dev/null
+        fi
+        echo "Stopped."
+    fi
+    rm -f "$PIDFILE"
+fi
 
 # Ensure node_modules exist
 if [[ ! -d "$FRONTEND_DIR/node_modules" ]]; then
