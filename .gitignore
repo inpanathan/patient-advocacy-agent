@@ -44,6 +44,11 @@ Thumbs.db
 .train_embeddings.log
 .index_embeddings.pid
 .index_embeddings.log
+.frontend.pid
+.frontend.log
+
+# Terminal recordings
+typescript
 
 # Uploaded images (runtime, not tracked)
 data/uploads/
