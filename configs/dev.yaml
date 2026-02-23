@@ -19,6 +19,9 @@ llm:
   temperature: 0.3
   timeout_seconds: 60
 
+embedding:
+  dimension: 1152
+
 database:
   enabled: true
   pool_size: 5
