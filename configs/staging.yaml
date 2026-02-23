@@ -27,5 +27,10 @@ database:
   echo: false
 
 vector_store:
+  backend: qdrant
   persist_dir: data/chroma
+  collection_name: scin_embeddings
   top_k: 10
+  qdrant_host: localhost
+  qdrant_port: 6333
+  qdrant_grpc_port: 6334

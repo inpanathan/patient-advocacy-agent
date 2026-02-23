@@ -52,11 +52,16 @@ class EmbeddingSettings(BaseSettings):
 
 
 class VectorStoreSettings(BaseSettings):
-    """ChromaDB / vector store configuration."""
+    """Vector store configuration (numpy in-memory or Qdrant)."""
 
+    backend: str = "numpy"
     persist_dir: str = "data/chroma"
     collection_name: str = "scin_embeddings"
     top_k: int = 10
+    qdrant_host: str = "localhost"
+    qdrant_port: int = 6333
+    qdrant_grpc_port: int = 6334
+    qdrant_api_key: str = ""
 
 
 class VoiceSettings(BaseSettings):
@@ -107,14 +112,13 @@ class DatabaseSettings(BaseSettings):
     def async_url(self) -> str:
         """SQLAlchemy async connection URL."""
         return (
-            f"postgresql+asyncpg://{self.user}:{self.password}"
-            f"@{self.host}:{self.port}/{self.name}"
+            f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.name}"
         )
 
     @property
     def sync_url(self) -> str:
         """SQLAlchemy sync connection URL (for Alembic)."""
-        return f"postgresql://{self.user}:{self.password}" f"@{self.host}:{self.port}/{self.name}"
+        return f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.name}"
 
 
 class ServerSettings(BaseSettings):

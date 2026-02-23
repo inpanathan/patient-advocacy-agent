@@ -4,27 +4,27 @@
 app_env: production
 app_debug: false
 use_mocks: false
-
 logging:
   level: INFO
   format: json
-
 server:
-  host: "0.0.0.0"
+  host: 0.0.0.0
   port: 8001
   reload: false
   workers: 4
-
 llm:
   temperature: 0.2
   timeout_seconds: 30
   max_tokens: 4096
-
 database:
   enabled: true
   pool_size: 20
   echo: false
-
 vector_store:
+  backend: qdrant
   persist_dir: /data/chroma
+  collection_name: scin_embeddings
   top_k: 10
+  qdrant_host: localhost
+  qdrant_port: 6333
+  qdrant_grpc_port: 6334

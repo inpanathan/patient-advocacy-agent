@@ -30,8 +30,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: F821
     Startup: load SCIN data, build RAG index, init database.
     Shutdown: close database, log clean exit.
     """
-    from src.data.scin_loader import SCINLoader
-    from src.models.rag_retrieval import RAGRetriever, VectorIndex
+    from src.models.rag_retrieval import RAGRetriever
+    from src.models.vector_store import create_vector_index
     from src.pipelines.index_embeddings import index_scin_records
 
     # ---- Database init (guarded by settings.database.enabled) ----
@@ -42,15 +42,37 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:  # noqa: F821
         logger.info("database_initialized")
 
     # ---- SCIN data + RAG index ----
-    index = VectorIndex()
+    index = create_vector_index()
     scin_path = Path(settings.scin.data_dir) / "metadata.json"
 
+    # Determine expected record count from SCIN metadata
+    expected_count = 0
+    scin_records = []
     if scin_path.exists():
         try:
+            from src.data.scin_loader import SCINLoader
+
             loader = SCINLoader(settings.scin.data_dir)
-            records = loader.load()
-            index_scin_records(records, index, data_dir=settings.scin.data_dir)
-            logger.info("scin_data_loaded", record_count=index.size)
+            scin_records = loader.load()
+            expected_count = len(scin_records)
+        except Exception as exc:
+            logger.warning("scin_metadata_read_failed", error=str(exc))
+
+    if index.size > 0 and index.size >= expected_count:
+        logger.info(
+            "vector_index_data_found",
+            backend=settings.vector_store.backend,
+            indexed=index.size,
+            expected=expected_count,
+        )
+    elif expected_count > 0:
+        try:
+            index_scin_records(scin_records, index, data_dir=settings.scin.data_dir)
+            logger.info(
+                "scin_data_loaded",
+                record_count=index.size,
+                was_partial=index.size > len(scin_records),
+            )
         except Exception as exc:
             logger.warning("scin_load_failed", error=str(exc))
     else:

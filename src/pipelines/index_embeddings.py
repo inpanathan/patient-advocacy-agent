@@ -12,14 +12,14 @@ import structlog
 
 from src.data.scin_schema import SCINRecord
 from src.models.embedding_model import get_embedding_model
-from src.models.rag_retrieval import VectorIndex
+from src.models.vector_store import VectorIndexProtocol
 
 logger = structlog.get_logger(__name__)
 
 
 def index_scin_records(
     records: list[SCINRecord],
-    index: VectorIndex,
+    index: VectorIndexProtocol,
     batch_size: int = 32,
     data_dir: str = "",
 ) -> int:
@@ -77,6 +77,7 @@ def main() -> None:
     import json
     from pathlib import Path
 
+    from src.models.vector_store import QdrantVectorIndex, create_vector_index
     from src.utils.config import settings
     from src.utils.logger import setup_logging
 
@@ -93,6 +94,11 @@ def main() -> None:
         type=int,
         default=32,
         help="Batch size for embedding",
+    )
+    parser.add_argument(
+        "--force-reindex",
+        action="store_true",
+        help="Delete and recreate the Qdrant collection before indexing",
     )
     args = parser.parse_args()
 
@@ -120,7 +126,12 @@ def main() -> None:
         logger.warning("no_valid_records")
         return
 
-    index = VectorIndex()
+    index = create_vector_index()
+
+    if args.force_reindex and isinstance(index, QdrantVectorIndex):
+        logger.info("force_reindex_requested")
+        index.recreate_collection()
+
     total = index_scin_records(records, index, batch_size=args.batch_size, data_dir=str(data_dir))
     logger.info("indexing_cli_done", total_indexed=total)
 

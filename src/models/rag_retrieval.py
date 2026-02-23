@@ -17,6 +17,7 @@ import structlog
 from numpy.typing import NDArray
 
 from src.models.embedding_model import get_embedding_model, normalize_embeddings
+from src.models.vector_store import VectorIndexProtocol
 from src.utils.errors import AppError, ErrorCode
 
 logger = structlog.get_logger(__name__)
@@ -113,7 +114,7 @@ class RAGRetriever:
 
     def __init__(
         self,
-        index: VectorIndex,
+        index: VectorIndexProtocol,
         top_k: int = 10,
         timeout_ms: int = 5000,
         max_retries: int = 2,
