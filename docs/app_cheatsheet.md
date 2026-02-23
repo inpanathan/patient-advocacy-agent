@@ -94,7 +94,8 @@ uv run pytest tests/ --cov=src --cov-report=html
 | `LLM__MEDGEMMA_MODEL_ID` | `google/medgemma-4b-it` | HF model ID for local LLM |
 | `LLM__GOOGLE_API_KEY` | — | Gemini API key (cloud mode) |
 | `LLM__DEVICE` | `auto` | Device for local LLM: cuda, cpu, auto |
-| `EMBEDDING__MODEL_ID` | `google/siglip-so400m-patch14-384` | Embedding model |
+| `EMBEDDING__MODEL_ID` | `google/medsiglip-448` | Embedding model (HAI-DEF) |
+| `LLM__LORA_ADAPTER_PATH` | — | Path to QLoRA adapter directory |
 | `EMBEDDING__DEVICE` | `auto` | Device for embeddings: cuda, cpu, auto |
 | `VOICE__WHISPER_MODEL_SIZE` | `large-v3` | Faster-Whisper model size (local) |
 | `VOICE__PIPER_VOICES_DIR` | `models/piper` | Piper TTS voice model directory |
@@ -253,6 +254,40 @@ bash scripts/train_embeddings.sh
 
 # Index SCIN embeddings into the vector store
 bash scripts/index_embeddings.sh
+```
+
+### Fine-Tuning MedGemma
+
+```bash
+# Full pipeline: data prep → QLoRA training → evaluation
+bash scripts/finetune_medgemma.sh
+
+# Data preparation only (SCIN → instruction-tuning JSONL)
+bash scripts/finetune_medgemma.sh --prep-only
+
+# Training only (requires prepared data)
+bash scripts/finetune_medgemma.sh --train-only
+
+# Evaluation only (requires trained adapters)
+bash scripts/finetune_medgemma.sh --eval-only
+```
+
+After fine-tuning, set `LLM__LORA_ADAPTER_PATH=models/medgemma-lora-derm` in `.env` and restart the server. The LoRA adapters will be loaded and merged automatically.
+
+### Qdrant Vector Store
+
+```bash
+# Setup Qdrant collection (idempotent)
+bash scripts/qdrant_setup.sh
+
+# Index SCIN embeddings (skip if already done)
+bash scripts/qdrant_index.sh
+
+# Force re-index (drops collection, re-embeds with MedSigLIP)
+bash scripts/qdrant_index.sh --force
+
+# Check index status
+bash scripts/qdrant_index.sh --status
 ```
 
 ### Git Workflows

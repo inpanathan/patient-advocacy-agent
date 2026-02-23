@@ -49,8 +49,10 @@ class TestRAGRetriever:
 
     def _setup_retriever(self):
         """Create a retriever with indexed mock data."""
+        from src.utils.config import settings
+
         index = VectorIndex()
-        model = MockEmbeddingModel(dimension=768)
+        model = MockEmbeddingModel(dimension=settings.embedding.dimension)
 
         # Index some records
         items = [{"image_path": f"img_{i}.jpg"} for i in range(10)]

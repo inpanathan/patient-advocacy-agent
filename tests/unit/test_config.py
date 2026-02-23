@@ -64,7 +64,7 @@ class TestSettings:
         assert s.logging.level == "INFO"
         assert s.logging.format == "json"
         assert s.llm.temperature == 0.3
-        assert s.embedding.dimension == 768
+        assert s.embedding.dimension == 1152  # MedSigLIP-448
         assert s.vector_store.top_k == 10
         assert len(s.voice.supported_languages) == 5
 
