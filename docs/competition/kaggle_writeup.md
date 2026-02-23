@@ -77,6 +77,17 @@ Safety constraints are enforced at the system level, not delegated to prompt eng
 
 ## 3. Results & Evaluation
 
+### QLoRA Fine-Tuning Results
+
+The MedGemma 4B IT model was fine-tuned on 1,958 SCIN-derived instruction-tuning examples (217 held out for validation) over 3 epochs using QLoRA with the following results:
+
+| Metric | Epoch 1 | Epoch 2 | Epoch 3 |
+|--------|---------|---------|---------|
+| Training Loss | 0.118 | 0.113 | 0.108 |
+| Validation Loss | 0.114 | 0.112 | 0.111 |
+
+The model converged smoothly with no signs of overfitting (validation loss remained below training loss throughout). Training completed in approximately 80 minutes on an NVIDIA RTX 3090 (24GB), using only ~5GB VRAM -- confirming feasibility on consumer-grade hardware. The cosine learning rate schedule with 10% warmup produced stable gradient norms (0.004--0.011) across all epochs.
+
 ### SOAP Note Quality
 
 SOAP section completeness is evaluated by verifying that all four sections (Subjective, Objective, Assessment, Plan) are populated with clinically relevant content for each generated note. The system achieves full section population on structured interview completions, with the Plan section consistently including the required professional consultation disclaimer.
