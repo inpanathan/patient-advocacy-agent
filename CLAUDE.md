@@ -280,6 +280,18 @@ uv run mypy src/
 4. **Architecture uncertainty:** Make a decision, write an ADR, mark as provisional.
 5. **Circular dependency between phases:** Implement the minimum interface/stub needed
    to unblock, then fill in the real implementation when the dependency is ready.
+6. **Login or UI hangs / "stuck" page:** The backend is likely down. Check with
+   `curl -s --max-time 3 http://localhost:8001/health`. If no response, check `.server.log`
+   and restart the backend. The Vite proxy has no connect timeout, so a dead backend causes
+   silent hangs — always verify backend health first.
+7. **"Address already in use" on server restart:** A zombie process is holding the port.
+   Kill it with `kill $(lsof -ti:8001) 2>/dev/null`, wait 2 seconds, then restart.
+8. **Server starts but health check hangs:** MedGemma model loading + SCIN image indexing
+   takes ~5 minutes. Check `tail -f .server.log` for progress (look for `local_embed_image`
+   lines advancing). The server does not accept requests until startup completes.
+9. **Case not visible in doctor portal:** Cases are assigned to a specific doctor via the
+   least-loaded algorithm. Check the `doctor_id` field in the admin case list response to
+   find which doctor account to log into.
 
 ## Commit Message Format
 

@@ -839,6 +839,69 @@
     "implement": "Y",
     "enable": "Y"
   },
+  "REQ-RUN-004": {
+    "section": "5. Running the Application",
+    "subsection": "",
+    "summary": "Scripts in subdirectories must resolve the project root before invoking tools that expect root-relative module paths or configs.",
+    "implement": "Y",
+    "enable": "Y"
+  },
+  "REQ-RUN-005": {
+    "section": "5. Running the Application",
+    "subsection": "",
+    "summary": "Start scripts should be idempotent — detect and stop any existing process before starting a new one to avoid port conflicts and orphaned processes.",
+    "implement": "Y",
+    "enable": "Y"
+  },
+  "REQ-RUN-006": {
+    "section": "5. Running the Application",
+    "subsection": "",
+    "summary": "Differentiate background process helpers for long-running daemons from batch job wrappers. Batch jobs must propagate the child process exit code.",
+    "implement": "Y",
+    "enable": "Y"
+  },
+  "REQ-RUN-007": {
+    "section": "5. Running the Application",
+    "subsection": "",
+    "summary": "Document default development credentials in the app cheatsheet so new developers can log in without reading source code.",
+    "implement": "Y",
+    "enable": "Y"
+  },
+  "REQ-RUN-008": {
+    "section": "5. Running the Application",
+    "subsection": "",
+    "summary": "Provide start and stop scripts for every service in the stack (backend, frontend, workers).",
+    "implement": "Y",
+    "enable": "Y"
+  },
+  "REQ-RUN-009": {
+    "section": "5. Running the Application",
+    "subsection": "",
+    "summary": "Start scripts must kill zombie processes holding the target port before binding.",
+    "implement": "Y",
+    "enable": "Y"
+  },
+  "REQ-RUN-010": {
+    "section": "5. Running the Application",
+    "subsection": "",
+    "summary": "Frontend proxy must have a connect timeout so a dead backend produces a fast error instead of an indefinite hang.",
+    "implement": "Y",
+    "enable": "Y"
+  },
+  "REQ-RUN-011": {
+    "section": "5. Running the Application",
+    "subsection": "",
+    "summary": "Apps with slow startup should log progress indicators and expose a readiness endpoint separate from liveness.",
+    "implement": "Y",
+    "enable": "Y"
+  },
+  "REQ-RUN-012": {
+    "section": "5. Running the Application",
+    "subsection": "",
+    "summary": "After a state-changing action that routes work, the response/UI must surface who the work was routed to.",
+    "implement": "Y",
+    "enable": "Y"
+  },
   "REQ-SEC-001": {
     "section": "6. Security",
     "subsection": "",
