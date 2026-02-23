@@ -11,6 +11,12 @@ interface Patient {
   language: string
 }
 
+interface CreatedCase {
+  id: string
+  case_number: string
+  doctor_name: string | null
+}
+
 export default function StartSession() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -18,6 +24,7 @@ export default function StartSession() {
   const [selectedId, setSelectedId] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [createdCase, setCreatedCase] = useState<CreatedCase | null>(null)
 
   useEffect(() => {
     if (user?.facility_id) {
@@ -36,7 +43,11 @@ export default function StartSession() {
         facility_id: user.facility_id,
         patient_id: selectedId,
       })
-      navigate(`/patient/session/${res.data.id}`)
+      setCreatedCase({
+        id: res.data.id,
+        case_number: res.data.case_number,
+        doctor_name: res.data.doctor_name,
+      })
     } catch {
       setError('Failed to start session')
     } finally {
@@ -54,6 +65,26 @@ export default function StartSession() {
       </nav>
 
       <main className="max-w-lg mx-auto px-4 py-8">
+        {createdCase ? (
+          <div className="bg-white p-6 rounded-xl shadow-sm space-y-4 text-center">
+            <div className="text-green-600 text-4xl">&#10003;</div>
+            <h2 className="text-lg font-bold text-gray-900">Case Created</h2>
+            <div className="text-sm text-gray-600 space-y-1">
+              <p>Case <span className="font-mono font-medium">{createdCase.case_number}</span></p>
+              {createdCase.doctor_name ? (
+                <p>Assigned to <span className="font-medium text-gray-900">{createdCase.doctor_name}</span></p>
+              ) : (
+                <p className="text-yellow-600">No doctor available — case is unassigned</p>
+              )}
+            </div>
+            <button
+              onClick={() => navigate(`/patient/session/${createdCase.id}`)}
+              className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+            >
+              Begin Voice Session
+            </button>
+          </div>
+        ) : (
         <div className="bg-white p-6 rounded-xl shadow-sm space-y-6">
           {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm">{error}</div>}
 
@@ -94,6 +125,7 @@ export default function StartSession() {
             {loading ? 'Starting...' : 'Start Voice Session'}
           </button>
         </div>
+        )}
       </main>
     </div>
   )

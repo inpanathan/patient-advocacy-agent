@@ -23,6 +23,7 @@ from src.db.engine import get_session
 from src.db.models import AudioRole, CaseStatus, User
 from src.db.repositories.assignment import AssignmentRepository
 from src.db.repositories.case_repo import CaseRepository
+from src.db.repositories.user_repo import UserRepository
 from src.models.rag_retrieval import RAGRetriever
 from src.models.stt import get_stt_service
 from src.models.tts import get_tts_service
@@ -71,6 +72,14 @@ async def start_case(
     assign_repo = AssignmentRepository(session)
     doctor_id = await assign_repo.assign_least_loaded_doctor(facility_id)
 
+    # Resolve doctor name for response [REQ-RUN-012]
+    doctor_name: str | None = None
+    if doctor_id:
+        user_repo = UserRepository(session)
+        doctor = await user_repo.get_by_id(doctor_id)
+        if doctor:
+            doctor_name = doctor.name
+
     # Generate case number and create
     case_repo = CaseRepository(session)
     case_number = await case_repo.generate_case_number(facility_id)
@@ -87,6 +96,7 @@ async def start_case(
         case_id=str(case.id),
         case_number=case.case_number,
         doctor_id=str(doctor_id) if doctor_id else None,
+        doctor_name=doctor_name,
     )
 
     return CaseResponse(
@@ -96,6 +106,7 @@ async def start_case(
         patient_id=str(case.patient_id),
         admin_id=str(case.admin_id),
         doctor_id=str(case.doctor_id) if case.doctor_id else None,
+        doctor_name=doctor_name,
         status=case.status.value,
         escalated=case.escalated,
         created_at=case.created_at,
@@ -131,6 +142,15 @@ async def list_cases(
         offset=offset,
     )
 
+    # Batch-resolve doctor names [REQ-RUN-012]
+    user_repo = UserRepository(session)
+    doctor_ids = {c.doctor_id for c in cases if c.doctor_id}
+    doctor_names: dict[uuid.UUID, str] = {}
+    for did in doctor_ids:
+        doc = await user_repo.get_by_id(did)
+        if doc:
+            doctor_names[did] = doc.name
+
     logger.info(
         "admin_cases_listed",
         facility_id=str(user.facility_id),
@@ -146,6 +166,7 @@ async def list_cases(
             patient_id=str(c.patient_id),
             admin_id=str(c.admin_id),
             doctor_id=str(c.doctor_id) if c.doctor_id else None,
+            doctor_name=doctor_names.get(c.doctor_id) if c.doctor_id else None,
             status=c.status.value,
             escalated=c.escalated,
             image_count=len(c.images) if c.images else 0,
@@ -167,6 +188,15 @@ async def get_case(
     case = await repo.get_case(uuid.UUID(case_id))
     if case is None:
         raise AppError(code=ErrorCode.NOT_FOUND, message="Case not found")
+
+    # Resolve doctor name [REQ-RUN-012]
+    doctor_name: str | None = None
+    if case.doctor_id:
+        user_repo = UserRepository(session)
+        doctor = await user_repo.get_by_id(case.doctor_id)
+        if doctor:
+            doctor_name = doctor.name
+
     return CaseResponse(
         id=str(case.id),
         case_number=case.case_number,
@@ -174,6 +204,7 @@ async def get_case(
         patient_id=str(case.patient_id),
         admin_id=str(case.admin_id),
         doctor_id=str(case.doctor_id) if case.doctor_id else None,
+        doctor_name=doctor_name,
         status=case.status.value,
         escalated=case.escalated,
         created_at=case.created_at,

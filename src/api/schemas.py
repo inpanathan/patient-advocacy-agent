@@ -76,6 +76,7 @@ class CaseResponse(BaseModel):
     patient_id: str
     admin_id: str
     doctor_id: str | None
+    doctor_name: str | None = None
     status: str
     escalated: bool
     image_count: int = 0
