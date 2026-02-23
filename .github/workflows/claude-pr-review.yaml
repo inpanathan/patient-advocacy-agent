@@ -1,0 +1,56 @@
+# Claude Code PR Review
+#
+# Automated code review on pull requests using Claude Code in headless mode.
+# Requires ANTHROPIC_API_KEY secret to be set in repository settings.
+#
+# To enable:
+# 1. Set ANTHROPIC_API_KEY in Settings > Secrets and variables > Actions
+# 2. Uncomment the workflow below
+# 3. Adjust the review prompt to match your team's standards
+
+name: Claude PR Review
+
+on:
+  pull_request:
+    branches: [main]
+
+# Uncomment everything below to enable automated PR review.
+# jobs:
+#   review:
+#     runs-on: ubuntu-latest
+#     if: github.event.pull_request.draft == false
+#     permissions:
+#       contents: read
+#       pull-requests: write
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+#
+#       - name: Install Claude Code
+#         run: curl -fsSL https://claude.ai/install.sh | bash
+#
+#       - name: Review PR
+#         env:
+#           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+#         run: |
+#           DIFF=$(git diff origin/main...HEAD)
+#           claude -p "Review this pull request diff for:
+#           1. Security vulnerabilities (injection, secrets, auth issues)
+#           2. PII/PHI exposure (patient data in logs, responses, or error messages)
+#           3. Medical compliance (disclaimers, escalation logic, consent verification)
+#           4. Correctness (logic errors, edge cases, error handling)
+#           5. Project conventions (structlog, AppError, Pydantic models, type hints)
+#
+#           Be concise. Only flag real issues, not style preferences.
+#           Format as a markdown checklist.
+#
+#           Diff:
+#           $DIFF" --output-format json | jq -r '.result' > review.md
+#
+#       - name: Post review comment
+#         if: success()
+#         env:
+#           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         run: |
+#           gh pr comment ${{ github.event.pull_request.number }} --body-file review.md
