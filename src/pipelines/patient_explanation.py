@@ -25,6 +25,36 @@ LANGUAGE_NAMES: dict[str, str] = {
 }
 
 
+def _deduplicate_lines(text: str) -> str:
+    """Remove consecutive duplicate lines and strip prompt leakage."""
+    lines: list[str] = []
+    seen: set[str] = set()
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        # Skip prompt instruction leakage
+        if line.startswith("- ") and any(
+            line.lower().startswith(prefix)
+            for prefix in [
+                "- use ",
+                "- do ",
+                "- write ",
+                "- keep ",
+                "- include ",
+                "- always ",
+            ]
+        ):
+            continue
+        # Skip exact duplicate sentences
+        normalized = line.rstrip(".")
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        lines.append(line)
+    return "\n".join(lines)
+
+
 async def generate_patient_explanation(
     soap: SOAPNote,
     language: str = "en",
@@ -43,20 +73,19 @@ async def generate_patient_explanation(
 
     response = await model.generate(
         prompt=(
-            f"Based on this medical assessment:\n{soap.assessment}\n\n"
-            f"Plan:\n{soap.plan}\n\n"
-            f"Write a simple, reassuring explanation for the patient in {lang_name}.\n"
-            "Rules:\n"
-            "- Use very short, simple sentences (the patient may be illiterate).\n"
-            "- Do NOT prescribe medication or make a definitive diagnosis.\n"
-            "- Do NOT use medical jargon or ICD codes.\n"
-            "- Always recommend seeing a doctor in person.\n"
-            "- Include a disclaimer that this is NOT a medical diagnosis.\n"
-            f"- Write ONLY in {lang_name}. Do not mix languages.\n"
-            "- Keep it under 6 sentences.\n"
+            f"You are explaining a skin check result to a patient in {lang_name}.\n\n"
+            f"Assessment: {soap.assessment}\n"
+            f"Plan: {soap.plan}\n\n"
+            f"Write 4-5 short sentences in {lang_name} for the patient. "
+            "Do not repeat any sentence. "
+            "Do not prescribe medication or diagnose. "
+            "Tell them to see a doctor in person. "
+            "Remind them this is not a medical diagnosis."
         ),
-        max_tokens=200,
+        max_tokens=250,
     )
+
+    result = _deduplicate_lines(response.text.strip())
 
     logger.info(
         "patient_explanation_generated",
@@ -64,4 +93,4 @@ async def generate_patient_explanation(
         icd_codes=soap.icd_codes,
     )
 
-    return response.text.strip()
+    return result
