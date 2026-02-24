@@ -3,6 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom'
 import api from '../../lib/api'
 import PrintableReport from '../../components/PrintableReport'
 
+const LOCALIZED_LABELS: Record<string, { heading: string; listen: string; stop: string; generating: string }> = {
+  en: { heading: 'Patient Explanation', listen: 'Listen', stop: 'Stop', generating: 'Generating...' },
+  hi: { heading: '\u0930\u094B\u0917\u0940 \u0935\u093F\u0935\u0930\u0923', listen: '\u0938\u0941\u0928\u0947\u0902', stop: '\u0930\u0941\u0915\u0947\u0902', generating: '\u0924\u0948\u092F\u093E\u0930 \u0939\u094B \u0930\u0939\u093E \u0939\u0948...' },
+  bn: { heading: '\u09B0\u09CB\u0997\u09C0\u09B0 \u09AC\u09CD\u09AF\u09BE\u0996\u09CD\u09AF\u09BE', listen: '\u09B6\u09C1\u09A8\u09C1\u09A8', stop: '\u09A5\u09BE\u09AE\u09C1\u09A8', generating: '\u09A4\u09C8\u09B0\u09BF \u09B9\u099A\u09CD\u099B\u09C7...' },
+  ta: { heading: '\u0BA8\u0BCB\u0BAF\u0BBE\u0BB3\u0BBF \u0BAE\u0BCA\u0BB4\u0BBF\u0BAA\u0BC6\u0BAF\u0BB0\u0BCD\u0BAA\u0BCD\u0BAA\u0BC1', listen: '\u0B95\u0BC7\u0BB3\u0BC1\u0B99\u0BCD\u0B95\u0BB3\u0BCD', stop: '\u0BA8\u0BBF\u0BB1\u0BC1\u0BA4\u0BCD\u0BA4\u0BC1', generating: '\u0BA4\u0BAF\u0BBE\u0BB0\u0BBF\u0B95\u0BCD\u0B95\u0BBF\u0BB1\u0BA4\u0BC1...' },
+  sw: { heading: 'Maelezo ya Mgonjwa', listen: 'Sikiliza', stop: 'Simama', generating: 'Inaandaa...' },
+  es: { heading: 'Explicaci\u00F3n del Paciente', listen: 'Escuchar', stop: 'Detener', generating: 'Generando...' },
+}
+
 interface CaseSummary {
   id: string
   case_number: string
@@ -14,6 +23,7 @@ interface CaseSummary {
     plan: string
     disclaimer: string
     patient_explanation?: string
+    patient_language?: string
   } | null
   icd_codes: string[] | null
   interview_transcript: Array<{ role: string; text: string }> | null
@@ -114,6 +124,8 @@ export default function CaseResult() {
   if (loading) return <div className="flex items-center justify-center h-screen">Loading assessment...</div>
 
   const hasExplanation = !!summary?.soap_note?.patient_explanation
+  const lang = summary?.soap_note?.patient_language || 'en'
+  const labels = LOCALIZED_LABELS[lang] || LOCALIZED_LABELS.en
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -154,7 +166,7 @@ export default function CaseResult() {
             {hasExplanation && (
               <div className="mt-6 bg-white p-6 rounded-xl shadow-sm print:hidden">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-lg font-semibold text-gray-900">Patient Explanation</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{labels.heading}</h2>
                   <button
                     onClick={handlePlayExplanation}
                     disabled={audioLoading}
@@ -167,17 +179,17 @@ export default function CaseResult() {
                     {audioLoading ? (
                       <>
                         <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Generating...
+                        {labels.generating}
                       </>
                     ) : audioPlaying ? (
                       <>
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
-                        Stop
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+                        {labels.stop}
                       </>
                     ) : (
                       <>
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                        Listen
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" /></svg>
+                        {labels.listen}
                       </>
                     )}
                   </button>

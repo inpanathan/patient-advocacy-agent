@@ -8,6 +8,8 @@ Covers: Phase 5 tasks
 
 from __future__ import annotations
 
+import re
+
 import structlog
 
 from src.models.medical_model import get_medical_model
@@ -24,27 +26,46 @@ LANGUAGE_NAMES: dict[str, str] = {
     "es": "Spanish",
 }
 
+# Regex patterns for meta-commentary the model adds around translations
+_META_PATTERNS: list[re.Pattern[str]] = [
+    re.compile(r"^here'?s?\s+(a\s+)?(the\s+)?", re.IGNORECASE),
+    re.compile(r"^breakdown\s+of\s+", re.IGNORECASE),
+    re.compile(r"^translation:?\s*$", re.IGNORECASE),
+    re.compile(r"^(note|explanation|summary)\s*:", re.IGNORECASE),
+    re.compile(r"^\*\*", re.IGNORECASE),
+]
+
+
+def _is_meta_line(line: str) -> bool:
+    """Return True if the line is model meta-commentary, not patient text."""
+    lower = line.lower().strip().rstrip(":")
+    # Prompt instruction leakage ("- Use ...", "- Do ...", etc.)
+    if line.startswith("- ") and any(
+        lower.startswith(p)
+        for p in [
+            "- use ",
+            "- do ",
+            "- write ",
+            "- keep ",
+            "- include ",
+            "- always ",
+            "- note",
+        ]
+    ):
+        return True
+    # English meta-commentary around translations
+    return any(pattern.search(lower) for pattern in _META_PATTERNS)
+
 
 def _deduplicate_lines(text: str) -> str:
-    """Remove consecutive duplicate lines and strip prompt leakage."""
+    """Remove duplicate lines and strip prompt leakage / meta-commentary."""
     lines: list[str] = []
     seen: set[str] = set()
     for raw_line in text.splitlines():
         line = raw_line.strip()
         if not line:
             continue
-        # Skip prompt instruction leakage
-        if line.startswith("- ") and any(
-            line.lower().startswith(prefix)
-            for prefix in [
-                "- use ",
-                "- do ",
-                "- write ",
-                "- keep ",
-                "- include ",
-                "- always ",
-            ]
-        ):
+        if _is_meta_line(line):
             continue
         # Skip exact duplicate sentences
         normalized = line.rstrip(".")
@@ -76,11 +97,13 @@ async def generate_patient_explanation(
             f"You are explaining a skin check result to a patient in {lang_name}.\n\n"
             f"Assessment: {soap.assessment}\n"
             f"Plan: {soap.plan}\n\n"
-            f"Write 4-5 short sentences in {lang_name} for the patient. "
+            f"Write exactly 4 short sentences in {lang_name} only. "
             "Do not repeat any sentence. "
+            "Do not add any English text or commentary. "
             "Do not prescribe medication or diagnose. "
             "Tell them to see a doctor in person. "
-            "Remind them this is not a medical diagnosis."
+            "Remind them this is not a medical diagnosis.\n\n"
+            f"{lang_name}:"
         ),
         max_tokens=250,
     )

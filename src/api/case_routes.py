@@ -501,6 +501,7 @@ async def upload_image(
         "plan": soap.plan,
         "disclaimer": soap.disclaimer,
         "patient_explanation": patient_explanation,
+        "patient_language": patient_lang,
     }
     case = await case_repo.complete_case(
         case_id=case.id,
@@ -626,6 +627,7 @@ async def complete_case(
         "plan": soap.plan,
         "disclaimer": soap.disclaimer,
         "patient_explanation": patient_explanation,
+        "patient_language": patient_lang,
     }
     case = await case_repo.complete_case(
         case_id=case.id,
