@@ -31,7 +31,7 @@
 - SOAP note generates on screen in real-time
 
 ### Narration
-"The interview begins with automatic language detection. The agent conducts a structured clinical interview through speech — asking about symptoms, location, duration, and severity. Before capturing any image, it always asks for explicit consent. The captured image is embedded by MedSigLIP and matched against 2,175 cases in the Harvard SCIN database using Qdrant vector search. MedGemma then generates a complete SOAP note with ICD-10 codes."
+"The interview begins with language of the patient at the time of patient registration. The agent conducts a structured clinical interview through speech — asking about symptoms, location, duration, and severity. Before capturing any image, it always asks for explicit consent. The captured image is embedded by MedSigLIP and matched against 2,175 cases in the Harvard SCIN database using Qdrant vector search. MedGemma then generates a complete SOAP note with ICD-10 codes and narrates the plan in simplified way in the patient's language".
 
 ---
 
@@ -75,3 +75,27 @@
 
 ### Narration
 "The entire system runs locally on a single GPU. MedGemma 4B with QLoRA fine-tuning fits in under 5 gigabytes of VRAM. Five languages are supported today with more planned. Every interaction takes less than three minutes. And the system always reminds patients: seek professional medical help. Thank you."
+
+---
+
+## Lessons Learned
+
+### Model & Data
+
+- **MedGemma 4B QLoRA fine-tuning is practical on consumer hardware.** A single RTX 3090 (24 GB VRAM) is sufficient for 4-bit quantised training. The key constraint is batch size, not model size.
+- **MedSigLIP embeddings transfer well to SCIN.** Even without fine-tuning, cosine similarity on MedSigLIP-2 embeddings produces clinically meaningful nearest-neighbor retrievals from the Harvard SCIN dataset. Contrastive fine-tuning on SCIN improved top-5 retrieval accuracy further.
+- **RAG context significantly improves SOAP quality.** SOAP notes generated with similar-case context from vector search are more specific in their differential diagnoses and ICD coding than those generated from transcript alone.
+- **Confidence calibration is non-trivial.** Raw model confidence scores correlate weakly with clinical correctness. Displaying them to doctors required careful UI design (color-coded thresholds) to avoid over-reliance on a poorly calibrated number.
+
+### Engineering
+
+- **End-to-end data flow needs explicit testing.** Confidence scores and RAG similar cases were computed by the backend but never surfaced in the doctor portal — the gap went unnoticed until manual testing because no integration test verified the full pipeline from model output through API serialisation to frontend display.
+- **SOAP dict serialisation is a silent data loss point.** The SOAPNote dataclass had a `confidence` field, but the hand-written dict literal in the API route omitted it. Using `dataclasses.asdict()` or a Pydantic model for serialisation would have prevented this class of bug.
+- **Voice-first UX is fundamentally different.** Designing for illiterate users means every piece of information must be audible. Text-only UI elements (status badges, ICD codes) are invisible to the primary user population — the patient explanation TTS pipeline was essential.
+- **Permission-gated image capture is a hard requirement.** Camera access without explicit spoken consent is both an ethical and legal violation. The consent gate must be tested in every flow that touches image capture.
+
+### Deployment & Operations
+
+- **Startup time dominates the developer experience.** MedGemma model loading plus SCIN image indexing takes approximately 5 minutes. This forced us to build robust health-check polling and mock backends for testing.
+- **Structured logging with structlog pays for itself.** Every production debugging session was resolved by searching structured JSON logs with `patient_session_id` and `trace_id`. Unstructured print debugging would have been unusable in async concurrent sessions.
+- **Multi-tenant case routing is subtle.** The least-loaded doctor assignment algorithm means the same case can appear under different doctor accounts. This confused testers who logged into the wrong account — the admin case list view became essential for debugging.
