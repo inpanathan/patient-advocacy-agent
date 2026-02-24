@@ -23,6 +23,7 @@ from src.db.engine import get_session
 from src.db.models import AudioRole, CaseStatus, User
 from src.db.repositories.assignment import AssignmentRepository
 from src.db.repositories.case_repo import CaseRepository
+from src.db.repositories.patient_repo import PatientRepository
 from src.db.repositories.user_repo import UserRepository
 from src.models.rag_retrieval import RAGRetriever
 from src.models.stt import get_stt_service
@@ -228,11 +229,17 @@ async def greet(
 
     patient_session = bridge.get_or_create(case.id)
 
-    greeting_text = (
-        "Hello, I am a health assistant. I am not a doctor. "
-        "I will ask you some questions to help a doctor understand your condition. "
-        "Please press and hold the microphone button to speak."
-    )
+    # Set the session language from the patient's registered language
+    patient_repo = PatientRepository(session)
+    patient = await patient_repo.get_patient(case.patient_id)
+    if patient and patient.language:
+        patient_session.detected_language = patient.language
+
+    language = patient_session.detected_language or "en"
+
+    from src.pipelines.patient_interview import GREETINGS
+
+    greeting_text = GREETINGS.get(language, GREETINGS["en"])
 
     # Advance past greeting so the first audio goes straight to interview
     from src.utils.session import SessionStage
@@ -242,7 +249,8 @@ async def greet(
 
     tts_service = get_tts_service()
     tts_result = await tts_service.synthesize(
-        greeting_text, language=patient_session.detected_language or "en"
+        greeting_text,
+        language=language,
     )
 
     return {
@@ -480,12 +488,19 @@ async def upload_image(
         if patient_session.conversation
         else [{"role": "patient", "text": t} for t in patient_session.transcript]
     )
+    # Generate patient-facing explanation in their language
+    from src.pipelines.patient_explanation import generate_patient_explanation
+
+    patient_lang = patient_session.detected_language or "en"
+    patient_explanation = await generate_patient_explanation(soap, language=patient_lang)
+
     soap_dict = {
         "subjective": soap.subjective,
         "objective": soap.objective,
         "assessment": soap.assessment,
         "plan": soap.plan,
         "disclaimer": soap.disclaimer,
+        "patient_explanation": patient_explanation,
     }
     case = await case_repo.complete_case(
         case_id=case.id,
@@ -597,6 +612,12 @@ async def complete_case(
         else [{"role": "patient", "text": t} for t in patient_session.transcript]
     )
 
+    # Generate patient-facing explanation in their language
+    from src.pipelines.patient_explanation import generate_patient_explanation
+
+    patient_lang = patient_session.detected_language or "en"
+    patient_explanation = await generate_patient_explanation(soap, language=patient_lang)
+
     # Complete case in DB
     soap_dict = {
         "subjective": soap.subjective,
@@ -604,6 +625,7 @@ async def complete_case(
         "assessment": soap.assessment,
         "plan": soap.plan,
         "disclaimer": soap.disclaimer,
+        "patient_explanation": patient_explanation,
     }
     case = await case_repo.complete_case(
         case_id=case.id,
@@ -684,6 +706,54 @@ async def get_case_summary(
         escalated=case.escalated,
         images=images,
     )
+
+
+@router.post("/{case_id}/explain-audio")
+async def explain_audio(
+    case_id: str,
+    user: User = Depends(require_role("admin")),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """Generate TTS audio of the patient explanation from the completed SOAP note.
+
+    Returns base64-encoded audio of the patient_explanation text,
+    spoken in the patient's registered language.
+    """
+    case_repo = CaseRepository(session)
+    case = await case_repo.get_case(uuid.UUID(case_id))
+    if case is None:
+        raise AppError(code=ErrorCode.NOT_FOUND, message="Case not found")
+
+    soap = case.soap_note
+    if not soap or not soap.get("patient_explanation"):
+        raise AppError(
+            code=ErrorCode.VALIDATION_ERROR,
+            message="No patient explanation available. Complete the case first.",
+        )
+
+    explanation_text = soap["patient_explanation"]
+
+    # Get patient language
+    patient_repo = PatientRepository(session)
+    patient = await patient_repo.get_patient(case.patient_id)
+    language = patient.language if patient else "en"
+
+    tts_service = get_tts_service()
+    tts_result = await tts_service.synthesize(explanation_text, language=language)
+
+    logger.info(
+        "explain_audio_generated",
+        case_id=case_id,
+        language=language,
+        duration_ms=tts_result.duration_ms,
+    )
+
+    return {
+        "text": explanation_text,
+        "audio_base64": base64.b64encode(tts_result.audio_bytes).decode("ascii"),
+        "audio_format": tts_result.format,
+        "language": language,
+    }
 
 
 @router.get("/{case_id}/images/{image_id}")

@@ -158,15 +158,22 @@ class CaseRepository(BaseRepository):
         return audio
 
     async def generate_case_number(self, facility_id: uuid.UUID) -> str:
-        """Generate the next case number for a facility (CASE-YYYYMMDD-NNNN)."""
+        """Generate the next case number for a facility (CASE-YYYYMMDD-NNNN).
+
+        Uses MAX on existing case numbers to avoid duplicates when cases
+        have been deleted or the DB was re-seeded.
+        """
         today = datetime.now(UTC).strftime("%Y%m%d")
         prefix = f"CASE-{today}-"
         stmt = (
-            select(func.count())
-            .select_from(Case)
+            select(func.max(Case.case_number))
             .where(Case.facility_id == facility_id)
             .where(Case.case_number.like(f"{prefix}%"))
         )
         result = await self.session.execute(stmt)
-        count = result.scalar_one()
-        return f"{prefix}{count + 1:04d}"
+        max_number = result.scalar_one()
+        if max_number:
+            # Extract the numeric suffix and increment
+            suffix = int(max_number.replace(prefix, ""))
+            return f"{prefix}{suffix + 1:04d}"
+        return f"{prefix}0001"

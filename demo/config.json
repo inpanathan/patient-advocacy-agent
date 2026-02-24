@@ -1,0 +1,65 @@
+{
+  "resolution": {
+    "width": 1920,
+    "height": 1080
+  },
+  "urls": {
+    "frontend": "https://localhost:5173",
+    "backend": "http://localhost:8001",
+    "dashboard_api": "http://localhost:8001/api/v1/dashboard",
+    "dashboard_page": "http://localhost:8001/dashboard"
+  },
+  "credentials": {
+    "admin": {
+      "email": "admin@test.com",
+      "password": "test"
+    },
+    "doctor": {
+      "email": "doctor1@test.com",
+      "password": "test"
+    }
+  },
+  "demo_image": "data/raw/scin/images/-101827005996397499_1.jpg",
+  "demo_image_label": "Eczema (L20.0)",
+  "piper": {
+    "model": "models/piper/en_US-lessac-medium.onnx",
+    "config": "models/piper/en_US-lessac-medium.onnx.json"
+  },
+  "scenes": [
+    {
+      "id": "scene_01_intro",
+      "title": "Problem Statement + Architecture",
+      "start_sec": 0,
+      "target_duration_sec": 30,
+      "narration": "Hundreds of millions of people in the Global South lack access to dermatologists. Many are illiterate and cannot use text-based health applications. The Patient Advocacy Agent is a voice-only system that conducts dermatological triage interviews, captures skin images with explicit consent, and produces standardized SOAP notes for remote physicians. Powered by MedGemma and MedSigLIP from Google's Health AI Developer Foundations."
+    },
+    {
+      "id": "scene_02_patient",
+      "title": "Patient Voice Session",
+      "start_sec": 30,
+      "target_duration_sec": 60,
+      "narration": "The interview begins with automatic language detection. The agent conducts a structured clinical interview through speech, asking about symptoms, location, duration, and severity. Before capturing any image, it always asks for explicit consent. The captured image is embedded by MedSigLIP and matched against over two thousand cases in the Harvard SCIN database using Qdrant vector search. MedGemma then generates a complete SOAP note with ICD-10 codes."
+    },
+    {
+      "id": "scene_03_doctor",
+      "title": "Doctor Portal",
+      "start_sec": 90,
+      "target_duration_sec": 45,
+      "narration": "Remote physicians receive structured case histories in their portal. Each case includes a complete SOAP note with ICD-10 codes, a confidence score, and similar cases from the SCIN database for reference. Cases are automatically assigned to the least-loaded doctor. The physician can review, annotate, and resolve cases from anywhere."
+    },
+    {
+      "id": "scene_04_monitoring",
+      "title": "Monitoring Dashboard + Safety",
+      "start_sec": 135,
+      "target_duration_sec": 30,
+      "narration": "The monitoring dashboard provides real-time visibility into system health, safety compliance, and fairness metrics. Malignancy escalation is enforced at one hundred percent. The system never misses a suspected cancer case. Bias metrics are tracked across all six Fitzpatrick skin types to ensure equitable performance. All patient data is PII-redacted in logs and encrypted at rest."
+    },
+    {
+      "id": "scene_05_closing",
+      "title": "Closing — Edge Deployment + Impact",
+      "start_sec": 165,
+      "target_duration_sec": 15,
+      "narration": "The entire system runs locally on a single GPU. MedGemma 4B with QLoRA fine-tuning fits in under five gigabytes of VRAM. Five languages are supported today with more planned. Every interaction takes less than three minutes. And the system always reminds patients: seek professional medical help. Thank you."
+    }
+  ]
+}

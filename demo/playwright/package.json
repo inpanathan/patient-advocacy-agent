@@ -1,0 +1,11 @@
+{
+  "name": "demo-recording",
+  "private": true,
+  "scripts": {
+    "record": "npx playwright test demo-recording.spec.ts",
+    "install-browser": "npx playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

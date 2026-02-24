@@ -28,6 +28,7 @@ Below is a transcript of a health assistant interviewing a patient about a skin 
 Extract the clinically relevant information and produce a SOAP note.
 
 Rules:
+- ALWAYS write in English only. Never use any other language.
 - Ignore filler words, greetings, and chit-chat. Focus on medical facts only.
 - Write in concise clinical language suitable for a physician.
 - Every section MUST have content. Do not leave any section empty.
@@ -209,7 +210,7 @@ def _parse_soap(text: str) -> SOAPNote:
 
     # Extract ICD codes from the icd_codes section or full text
     icd_source = sections.get("icd_codes", text)
-    icd_codes = ICD_PATTERN.findall(icd_source)
+    icd_codes = list(dict.fromkeys(ICD_PATTERN.findall(icd_source)))
 
     # Extract confidence score
     confidence = 0.0

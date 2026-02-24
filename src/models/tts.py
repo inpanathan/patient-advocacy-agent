@@ -46,11 +46,18 @@ def get_tts_service() -> TTSProtocol:
             return _instance
 
     if backend == "cloud":
-        from src.models.cloud.cloud_tts import CloudTTS
+        # Cloud backend only applies to the LLM; use local Piper for TTS
+        # (Google Cloud TTS requires separate credentials)
+        try:
+            from src.models.local.local_tts import LocalTTS
 
-        logger.info("using_cloud_tts")
-        _instance = CloudTTS()
-        return _instance
+            logger.info("using_local_tts", reason="cloud_backend_uses_local_tts")
+            _instance = LocalTTS()
+            return _instance
+        except ImportError as exc:
+            logger.warning("local_tts_unavailable_falling_back_to_mock", error=str(exc))
+            _instance = MockTTS()
+            return _instance
 
     msg = f"Unknown model_backend: {backend}"
     raise ValueError(msg)

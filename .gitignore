@@ -64,3 +64,7 @@ backups/
 # Frontend
 frontend/node_modules/
 frontend/dist/
+
+# Demo recording output (generated videos, narration WAVs)
+demo/output/
+demo/playwright/node_modules/
