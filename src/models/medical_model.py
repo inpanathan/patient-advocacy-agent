@@ -39,9 +39,11 @@ def get_medical_model() -> MedicalModelProtocol:
     if backend == "local":
         try:
             from src.models.local.local_medical import LocalMedicalModel
+            from src.pipelines.lora_loader import maybe_apply_lora_adapter
 
             logger.info("using_local_medical_model")
             _instance = LocalMedicalModel()
+            maybe_apply_lora_adapter(_instance)
             return _instance
         except ImportError as exc:
             logger.warning("local_medical_model_unavailable_falling_back_to_mock", error=str(exc))

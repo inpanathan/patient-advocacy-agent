@@ -23,15 +23,23 @@ help" disclaimer and never prescribes medication or makes definitive diagnoses.
 - [Contributing](#contributing)
 - [License](#license)
 
+## Competition
+
+This project is submitted to the [MedGemma Impact Challenge](https://www.kaggle.com/competitions/med-gemma-impact-challenge)
+on Kaggle (Main Track + Agent-Based Workflows). It uses Google's
+Health AI Developer Foundations (HAI-DEF) models throughout the pipeline.
+
+See `docs/competition/kaggle_writeup.md` for the full technical writeup.
+
 ## Overview
 
 - **Problem:** Patients in frontier villages lack access to dermatologists.
   Many are illiterate and cannot use text-based interfaces.
 - **Approach:** Voice-only agentic interview using MedGemma (medical LLM),
-  SigLIP-2 (multimodal embeddings), and RAG over the Harvard SCIN database.
+  MedSigLIP (HAI-DEF multimodal embeddings), and RAG over the Harvard SCIN database.
 - **Users:** Patients (voice interface), remote physicians (SOAP case histories).
-- **Key techniques:** Contrastive loss fine-tuning, multimodal RAG, WebRTC
-  voice pipeline, permission-gated image capture.
+- **Key techniques:** QLoRA fine-tuning, multimodal RAG, WebRTC voice pipeline,
+  permission-gated image capture.
 
 ## Features
 
@@ -52,7 +60,7 @@ patient_advocacy_agent/
 ├── pyproject.toml               # Project config and dependencies
 ├── main.py                      # Application entry point
 ├── src/
-│   ├── models/                  # ML models (SigLIP-2, MedGemma, STT, TTS)
+│   ├── models/                  # ML models (MedSigLIP, MedGemma, STT, TTS)
 │   ├── data/                    # Data loading, SCIN ingestion
 │   ├── features/                # Feature engineering, embeddings
 │   ├── utils/                   # Config, logger, errors, feature flags
@@ -74,14 +82,15 @@ patient_advocacy_agent/
 - Data is versioned with DVC and not stored in git.
 - See `docs/system_requirements.md` for storage requirements.
 
-## Models
+## Models (HAI-DEF Aligned)
 
-| Model | Purpose | Type |
-|-------|---------|------|
-| SigLIP-2 | Multimodal embeddings (image + text) | Fine-tuned with contrastive loss |
-| MedGemma | Medical LLM for SOAP generation, ICD coding | API or local inference |
-| STT | Speech-to-text (5+ languages) | Google Cloud Speech |
-| TTS | Text-to-speech (patient explanations) | Google Cloud TTS |
+| Model | HuggingFace ID | Purpose | HAI-DEF |
+|-------|---------------|---------|---------|
+| MedGemma 4B IT | `google/medgemma-4b-it` | SOAP generation, ICD coding, clinical reasoning | Yes |
+| MedGemma 4B + QLoRA | `models/medgemma-lora-derm/` | Fine-tuned on SCIN for dermatology | Yes |
+| MedSigLIP-448 | `google/medsiglip-448` | Multimodal embeddings (image + text) for RAG | Yes |
+| Faster-Whisper | `large-v3` | Speech-to-text (5+ languages) | No |
+| Piper TTS | local | Text-to-speech (patient explanations) | No |
 
 ## Installation
 
@@ -134,11 +143,14 @@ open http://localhost:8001/docs
 ## Training
 
 ```bash
-# Fine-tune SigLIP-2 embeddings on SCIN database
+# Fine-tune MedGemma with QLoRA on SCIN dermatology data
+bash scripts/finetune_medgemma.sh
+
+# Fine-tune MedSigLIP embeddings on SCIN database
 uv run python -m src.pipelines.train_embeddings --config configs/experiments/default.yaml
 
-# Index embeddings into vector store
-uv run python -m src.pipelines.index_embeddings
+# Index embeddings into vector store (requires Qdrant running)
+bash scripts/qdrant_index.sh
 ```
 
 ## Evaluation
@@ -152,6 +164,9 @@ uv run python -m src.evaluation.retrieval_eval
 
 # Run bias metrics across Fitzpatrick types
 uv run python -m src.evaluation.bias_metrics
+
+# Evaluate fine-tuned MedGemma vs base model
+uv run python -m src.evaluation.finetune_eval
 ```
 
 ## Testing

@@ -1,0 +1,71 @@
+---
+title: Patient Advocacy Agent — System Architecture
+---
+flowchart TB
+    subgraph Patient["Patient Interface (Voice-Only)"]
+        MIC["Microphone Input"]
+        SPK["Speaker Output"]
+        CAM["Camera (Consent-Gated)"]
+    end
+
+    subgraph Voice["Voice Pipeline"]
+        STT["Faster-Whisper STT\n5 Languages"]
+        LANG["Language Detection"]
+        TTS["Piper TTS\nPlain-Language Response"]
+    end
+
+    subgraph Agent["Interview Agent"]
+        INT["Multi-Turn Interview\nSymptoms / Location / Duration"]
+        CONSENT["Permission Gate\n'May I take a photo?'"]
+        SAFETY["Safety Checks\nMalignancy Escalation\nPrescription Blocking"]
+    end
+
+    subgraph HAI["HAI-DEF Models"]
+        SIGLIP["MedSigLIP-448\nMedical Image Encoder\n1152-dim Embeddings"]
+        GEMMA["MedGemma 4B + QLoRA\nSOAP Generation\nICD-10 Coding"]
+    end
+
+    subgraph RAG["RAG Pipeline"]
+        QDRANT["Qdrant Vector Store\n2,175 SCIN Records"]
+        RETRIEVE["Top-10 Similar Cases\nCosine Similarity"]
+    end
+
+    subgraph Output["Outputs"]
+        SOAP["SOAP Note\nSubjective / Objective\nAssessment / Plan"]
+        ICD["ICD-10 Codes\nConfidence Score"]
+        PORTAL["Doctor Portal\nCase Review + Assignment"]
+    end
+
+    subgraph Monitor["Monitoring"]
+        DASH["Dashboard\nHealth / Latency / Safety"]
+        BIAS["Bias Metrics\nFitzpatrick I-VI Parity"]
+        AUDIT["Audit Trail\nPII-Redacted Logs"]
+    end
+
+    MIC --> STT
+    STT --> LANG
+    LANG --> INT
+    INT --> CONSENT
+    CONSENT -->|Consent Given| CAM
+    CAM --> SIGLIP
+    SIGLIP --> QDRANT
+    QDRANT --> RETRIEVE
+    INT --> GEMMA
+    RETRIEVE --> GEMMA
+    GEMMA --> SAFETY
+    SAFETY --> SOAP
+    SOAP --> ICD
+    SOAP --> PORTAL
+    SAFETY --> TTS
+    TTS --> SPK
+    SOAP --> DASH
+    SOAP --> BIAS
+    SOAP --> AUDIT
+
+    style Patient fill:#e8f4f8,stroke:#2196F3
+    style Voice fill:#fff3e0,stroke:#FF9800
+    style Agent fill:#fce4ec,stroke:#E91E63
+    style HAI fill:#e8f5e9,stroke:#4CAF50
+    style RAG fill:#f3e5f5,stroke:#9C27B0
+    style Output fill:#e0f2f1,stroke:#009688
+    style Monitor fill:#f5f5f5,stroke:#607D8B

@@ -40,14 +40,15 @@ class LLMSettings(BaseSettings):
     timeout_seconds: int = 30
     google_api_key: str = ""
     device: str = "auto"
+    lora_adapter_path: str = ""
 
 
 class EmbeddingSettings(BaseSettings):
-    """SigLIP-2 embedding model configuration."""
+    """MedSigLIP embedding model configuration (HAI-DEF certified)."""
 
-    model_path: str = "models/siglip2"
-    model_id: str = "google/siglip-so400m-patch14-384"
-    dimension: int = 768
+    model_path: str = "models/medsiglip"
+    model_id: str = "google/medsiglip-448"
+    dimension: int = 1152
     device: str = "auto"
 
 

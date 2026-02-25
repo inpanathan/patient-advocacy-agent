@@ -42,17 +42,98 @@ DISCLAIMER = (
     "Please seek professional medical help for proper evaluation and treatment."
 )
 
-INTERVIEW_SYSTEM_BASE = """\
+LANGUAGE_NAMES: dict[str, str] = {
+    "en": "English",
+    "hi": "Hindi",
+    "bn": "Bengali",
+    "ta": "Tamil",
+    "sw": "Swahili",
+    "es": "Spanish",
+}
+
+GREETINGS: dict[str, str] = {
+    "en": (
+        "Hello, I am a health assistant. I am not a doctor. "
+        "I will ask you some questions to help a doctor understand your condition. "
+        "Can you tell me what is bothering you?"
+    ),
+    "hi": (
+        "नमस्ते, मैं एक स्वास्थ्य सहायक हूँ। मैं डॉक्टर नहीं हूँ। "
+        "मैं आपसे कुछ सवाल पूछूँगा ताकि डॉक्टर आपकी स्थिति समझ सकें। "
+        "आपको क्या तकलीफ है?"
+    ),
+    "bn": (
+        "নমস্কার, আমি একজন স্বাস্থ্য সহায়ক। আমি ডাক্তার নই। "
+        "আমি আপনাকে কিছু প্রশ্ন জিজ্ঞাসা করব যাতে ডাক্তার আপনার অবস্থা বুঝতে পারেন। "
+        "আপনার কী সমস্যা হচ্ছে?"
+    ),
+    "ta": (
+        "வணக்கம், நான் ஒரு சுகாதார உதவியாளர். நான் மருத்துவர் அல்ல. "
+        "மருத்துவர் உங்கள் நிலையை புரிந்துகொள்ள நான் சில கேள்விகள் கேட்பேன். "
+        "உங்களுக்கு என்ன பிரச்சனை?"
+    ),
+    "sw": (
+        "Habari, mimi ni msaidizi wa afya. Mimi si daktari. "
+        "Nitakuuliza maswali machache ili daktari aelewe hali yako. "
+        "Una tatizo gani?"
+    ),
+    "es": (
+        "Hola, soy un asistente de salud. No soy médico. "
+        "Le haré algunas preguntas para que un médico entienda su condición. "
+        "¿Qué le molesta?"
+    ),
+}
+
+CONSENT_REQUESTS: dict[str, str] = {
+    "en": (
+        "Thank you for telling me about your condition. "
+        "I would like to take a photo of the affected area to help the doctor. "
+        "Is that okay with you?"
+    ),
+    "hi": (
+        "आपकी स्थिति बताने के लिए धन्यवाद। "
+        "मैं प्रभावित क्षेत्र की एक तस्वीर लेना चाहूँगा ताकि डॉक्टर की मदद हो सके। "
+        "क्या आपको ठीक है?"
+    ),
+    "bn": (
+        "আপনার অবস্থা জানানোর জন্য ধন্যবাদ। "
+        "আমি আক্রান্ত জায়গার একটি ছবি তুলতে চাই যাতে ডাক্তারকে সাহায্য হয়। "
+        "আপনি কি রাজি?"
+    ),
+    "ta": (
+        "உங்கள் நிலையை தெரிவித்ததற்கு நன்றி. "
+        "மருத்துவருக்கு உதவ பாதிக்கப்பட்ட பகுதியின் புகைப்படம் எடுக்க விரும்புகிறேன். "
+        "உங்களுக்கு சரியா?"
+    ),
+    "sw": (
+        "Asante kwa kunieleza hali yako. "
+        "Ningependa kupiga picha ya eneo lililoathirika ili kumsaidia daktari. "
+        "Je, unakubali?"
+    ),
+    "es": (
+        "Gracias por contarme sobre su condición. "
+        "Me gustaría tomar una foto del área afectada para ayudar al médico. "
+        "¿Está de acuerdo?"
+    ),
+}
+
+
+def _get_interview_system_prompt(language: str) -> str:
+    """Build the interview system prompt for the given language."""
+    lang_name = LANGUAGE_NAMES.get(language, "English")
+    return f"""\
 You are a friendly health assistant helping a patient describe a skin problem. \
 You are NOT a doctor. You are collecting information so a real doctor can help later.
 
 Rules:
+- ALWAYS respond in {lang_name} only. Never mix languages.
 - Ask exactly ONE short question per turn (1 sentence, max 15 words).
 - Use very simple language (the patient may be illiterate).
 - Never diagnose, prescribe, or give medical advice.
 - Never say "or" to offer multiple choices. Just pick the most important question.
 - Do NOT repeat or re-ask anything listed under "What the patient has told you so far".
 """
+
 
 TOPIC_QUESTIONS: dict[str, str] = {
     "chief_complaint": "What is the problem?",
@@ -233,7 +314,7 @@ class PatientInterviewAgent:
                 session_id=session.session_id,
                 text_snippet=stt_result.text[:50],
             )
-            response = self._deescalation_response()
+            response = self._deescalation_response(session.detected_language or "en")
             session.conversation.append({"role": "assistant", "text": response})
             return response
 
@@ -265,11 +346,8 @@ class PatientInterviewAgent:
             confidence=stt_result.confidence,
         )
 
-        return (
-            "Hello, I am a health assistant. I am not a doctor. "
-            "I will ask you some questions to help a doctor understand your condition. "
-            "Can you tell me what is bothering you?"
-        )
+        lang = session.detected_language or "en"
+        return GREETINGS.get(lang, GREETINGS["en"])
 
     async def _handle_interview(
         self,
@@ -291,14 +369,11 @@ class PatientInterviewAgent:
         )
 
         # If all topics covered, go straight to image consent
+        lang = session.detected_language or "en"
         unanswered = [t for t in TOPIC_QUESTIONS if t not in session.answered_topics]
         if not unanswered and self._should_request_image("enough information", session):
             session.advance_to(SessionStage.IMAGE_CONSENT)
-            return (
-                "Thank you for telling me about your condition. "
-                "I would like to take a photo of the affected area to help the doctor. "
-                "Is that okay with you?"
-            )
+            return CONSENT_REQUESTS.get(lang, CONSENT_REQUESTS["en"])
 
         # Build dynamic prompt with answered/unanswered sections
         prompt = self._build_dynamic_prompt(session, unanswered)
@@ -306,7 +381,7 @@ class PatientInterviewAgent:
         response = await self._model.generate(
             prompt=prompt,
             temperature=0.2,
-            max_tokens=60,
+            max_tokens=256,
         )
 
         # Clean up — take only the first sentence/question
@@ -324,11 +399,7 @@ class PatientInterviewAgent:
         # Check if we have enough info to suggest photo
         if self._should_request_image(text, session):
             session.advance_to(SessionStage.IMAGE_CONSENT)
-            return (
-                "Thank you for telling me about your condition. "
-                "I would like to take a photo of the affected area to help the doctor. "
-                "Is that okay with you?"
-            )
+            return CONSENT_REQUESTS.get(lang, CONSENT_REQUESTS["en"])
 
         logger.info(
             "interview_question",
@@ -369,7 +440,8 @@ class PatientInterviewAgent:
         unanswered: list[str],
     ) -> str:
         """Build interview prompt with explicit answered/unanswered sections."""
-        lines = [INTERVIEW_SYSTEM_BASE]
+        lang = session.detected_language or "en"
+        lines = [_get_interview_system_prompt(lang)]
 
         # Show what's already been answered
         if session.answered_topics:
@@ -406,13 +478,52 @@ class PatientInterviewAgent:
     ) -> str:
         """Handle image consent response."""
         text_lower = stt_result.text.lower()
-        if any(word in text_lower for word in ["yes", "ok", "okay", "sure", "fine"]):
+        lang = session.detected_language or "en"
+        # Accept consent words in multiple languages
+        consent_words = [
+            "yes",
+            "ok",
+            "okay",
+            "sure",
+            "fine",  # English
+            "haan",
+            "haa",
+            "ji",
+            "theek",  # Hindi
+            "hya",
+            "ha",  # Bengali
+            "aam",
+            "sari",  # Tamil
+            "ndiyo",
+            "sawa",  # Swahili
+            "si",
+            "sí",
+            "bueno",
+            "vale",  # Spanish
+        ]
+        if any(word in text_lower for word in consent_words):
             session.grant_image_consent()
             session.advance_to(SessionStage.IMAGE_CAPTURE)
-            return "Thank you. Please take a photo of the affected area now."
+            consent_ack = {
+                "en": "Thank you. Please take a photo of the affected area now.",
+                "hi": "धन्यवाद। कृपया अभी प्रभावित क्षेत्र की तस्वीर लें।",
+                "bn": "ধন্যবাদ। এখন আক্রান্ত জায়গার ছবি তুলুন।",
+                "ta": "நன்றி. இப்போது பாதிக்கப்பட்ட பகுதியின் புகைப்படம் எடுக்கவும்.",
+                "sw": "Asante. Tafadhali piga picha ya eneo lililoathirika sasa.",
+                "es": "Gracias. Por favor tome una foto del área afectada ahora.",
+            }
+            return consent_ack.get(lang, consent_ack["en"])
         else:
             session.advance_to(SessionStage.INTERVIEW)
-            return "That is okay. Can you describe what the affected area looks like?"
+            consent_decline = {
+                "en": "That is okay. Can you describe what the affected area looks like?",
+                "hi": "कोई बात नहीं। क्या आप बता सकते हैं कि प्रभावित क्षेत्र कैसा दिखता है?",
+                "bn": "ঠিক আছে। আক্রান্ত জায়গাটি দেখতে কেমন তা বলতে পারবেন?",
+                "ta": "பரவாயில்லை. பாதிக்கப்பட்ட பகுதி எப்படி இருக்கிறது என்று சொல்ல முடியுமா?",
+                "sw": "Sawa. Je, unaweza kuelezea eneo lililoathirika linaonekanaje?",
+                "es": "Está bien. ¿Puede describir cómo se ve el área afectada?",
+            }
+            return consent_decline.get(lang, consent_decline["en"])
 
     def _should_request_image(
         self,
@@ -437,13 +548,41 @@ class PatientInterviewAgent:
         text_lower = text.lower()
         return any(kw in text_lower for kw in DE_ESCALATION_KEYWORDS)
 
-    def _deescalation_response(self) -> str:
-        """Return a de-escalation response."""
-        return (
-            "It sounds like what you are describing may not be a skin condition. "
-            "Things like paint, tattoos, or henna are not medical issues. "
-            "If you have a different concern, I am happy to help."
-        )
+    def _deescalation_response(self, language: str = "en") -> str:
+        """Return a de-escalation response in the patient's language."""
+        responses: dict[str, str] = {
+            "en": (
+                "It sounds like what you are describing may not be a skin condition. "
+                "Things like paint, tattoos, or henna are not medical issues. "
+                "If you have a different concern, I am happy to help."
+            ),
+            "hi": (
+                "ऐसा लगता है कि आप जो बता रहे हैं वह त्वचा की बीमारी नहीं है। "
+                "पेंट, टैटू, या मेहंदी जैसी चीजें चिकित्सा समस्या नहीं हैं। "
+                "अगर आपकी कोई और चिंता है, तो मैं मदद करने को तैयार हूँ।"
+            ),
+            "bn": (
+                "মনে হচ্ছে আপনি যা বর্ণনা করছেন তা ত্বকের রোগ নয়। "
+                "পেইন্ট, ট্যাটু, বা মেহেদি চিকিৎসা সমস্যা নয়। "
+                "আপনার অন্য কোনো সমস্যা থাকলে আমি সাহায্য করতে পারি।"
+            ),
+            "ta": (
+                "நீங்கள் விவரிப்பது தோல் நோய் அல்ல என்று தெரிகிறது. "
+                "பெயிண்ட், டாட்டூ, அல்லது மருதாணி போன்றவை மருத்துவ பிரச்சனைகள் அல்ல. "
+                "வேறு ஏதாவது கவலை இருந்தால், நான் உதவ தயாராக இருக்கிறேன்."
+            ),
+            "sw": (
+                "Inaonekana unachokielezea huenda si hali ya ngozi. "
+                "Vitu kama rangi, tattoo, au henna si matatizo ya kimatibabu. "
+                "Ikiwa una wasiwasi mwingine, niko tayari kusaidia."
+            ),
+            "es": (
+                "Parece que lo que describe no es una condición de la piel. "
+                "Cosas como pintura, tatuajes o henna no son problemas médicos. "
+                "Si tiene otra preocupación, estoy aquí para ayudar."
+            ),
+        }
+        return responses.get(language, responses["en"])
 
     def check_escalation(self, soap_text: str) -> str | None:
         """Check if a SOAP note warrants immediate escalation."""

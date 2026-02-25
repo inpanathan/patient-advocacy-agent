@@ -24,6 +24,7 @@ Your role is to produce a structured SOAP note for a remote physician \
 based on a patient interview transcript and any available image or \
 retrieval-augmented context.
 
+ALWAYS write in English only. Never use any other language.
 Always include a disclaimer that this is an AI-assisted triage assessment \
 and the patient should seek professional medical help.
 
@@ -52,7 +53,7 @@ class CloudMedicalModel:
             raise ValueError(msg)
 
         self._client = genai.Client(api_key=api_key)
-        self._model_name = "gemini-2.0-flash"
+        self._model_name = "gemini-2.5-flash"
         logger.info("cloud_medical_model_initialized", model=self._model_name)
 
     async def generate(
@@ -160,7 +161,7 @@ def _parse_soap(text: str) -> SOAPNote:
         sections[current_section] = "\n".join(lines).strip()
 
     icd_source = sections.get("icd_codes", text)
-    icd_codes = ICD_PATTERN.findall(icd_source)
+    icd_codes = list(dict.fromkeys(ICD_PATTERN.findall(icd_source)))
 
     confidence = 0.0
     conf_text = sections.get("confidence", "")

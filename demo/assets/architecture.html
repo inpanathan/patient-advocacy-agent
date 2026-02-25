@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Architecture — Patient Advocacy Agent</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1920px; height: 1080px;
+    background: #0f172a;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #f8fafc; overflow: hidden;
+  }
+  h2 {
+    font-size: 36px; font-weight: 600; margin-bottom: 24px; color: #e2e8f0;
+  }
+  #diagram {
+    background: rgba(255,255,255,0.03); border-radius: 16px;
+    padding: 32px; max-width: 1600px; width: 100%;
+  }
+  .mermaid { display: flex; justify-content: center; }
+  .mermaid svg { max-height: 860px; }
+</style>
+</head>
+<body>
+  <h2>System Architecture</h2>
+  <div id="diagram">
+    <pre class="mermaid">
+flowchart TB
+    subgraph Patient["Patient Interface (Voice-Only)"]
+        MIC["Microphone Input"]
+        SPK["Speaker Output"]
+        CAM["Camera (Consent-Gated)"]
+    end
+
+    subgraph Voice["Voice Pipeline"]
+        STT["Faster-Whisper STT\n5 Languages"]
+        LANG["Language Detection"]
+        TTS["Piper TTS\nPlain-Language Response"]
+    end
+
+    subgraph Agent["Interview Agent"]
+        INT["Multi-Turn Interview\nSymptoms / Location / Duration"]
+        CONSENT["Permission Gate\n'May I take a photo?'"]
+        SAFETY["Safety Checks\nMalignancy Escalation\nPrescription Blocking"]
+    end
+
+    subgraph HAI["HAI-DEF Models"]
+        SIGLIP["MedSigLIP-448\nMedical Image Encoder\n1152-dim Embeddings"]
+        GEMMA["MedGemma 4B + QLoRA\nSOAP Generation\nICD-10 Coding"]
+    end
+
+    subgraph RAG["RAG Pipeline"]
+        QDRANT["Qdrant Vector Store\n2,175 SCIN Records"]
+        RETRIEVE["Top-10 Similar Cases\nCosine Similarity"]
+    end
+
+    subgraph Output["Outputs"]
+        SOAP["SOAP Note\nSubjective / Objective\nAssessment / Plan"]
+        ICD["ICD-10 Codes\nConfidence Score"]
+        PORTAL["Doctor Portal\nCase Review + Assignment"]
+    end
+
+    subgraph Monitor["Monitoring"]
+        DASH["Dashboard\nHealth / Latency / Safety"]
+        BIAS["Bias Metrics\nFitzpatrick I-VI Parity"]
+        AUDIT["Audit Trail\nPII-Redacted Logs"]
+    end
+
+    MIC --> STT
+    STT --> LANG
+    LANG --> INT
+    INT --> CONSENT
+    CONSENT -->|Consent Given| CAM
+    CAM --> SIGLIP
+    SIGLIP --> QDRANT
+    QDRANT --> RETRIEVE
+    INT --> GEMMA
+    RETRIEVE --> GEMMA
+    GEMMA --> SAFETY
+    SAFETY --> SOAP
+    SOAP --> ICD
+    SOAP --> PORTAL
+    SAFETY --> TTS
+    TTS --> SPK
+    SOAP --> DASH
+    SOAP --> BIAS
+    SOAP --> AUDIT
+
+    style Patient fill:#1e3a5f,stroke:#60a5fa,color:#e2e8f0
+    style Voice fill:#3b2f0a,stroke:#fbbf24,color:#e2e8f0
+    style Agent fill:#3b1029,stroke:#f472b6,color:#e2e8f0
+    style HAI fill:#14332a,stroke:#4ade80,color:#e2e8f0
+    style RAG fill:#2e1a3b,stroke:#c084fc,color:#e2e8f0
+    style Output fill:#1a332e,stroke:#2dd4bf,color:#e2e8f0
+    style Monitor fill:#1e293b,stroke:#94a3b8,color:#e2e8f0
+    </pre>
+  </div>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        fontSize: '16px',
+        primaryColor: '#1e3a5f',
+        primaryTextColor: '#e2e8f0',
+        lineColor: '#64748b',
+      }
+    });
+  </script>
+</body>
+</html>

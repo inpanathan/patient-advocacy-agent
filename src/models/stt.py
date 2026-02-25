@@ -46,11 +46,18 @@ def get_stt_service() -> STTProtocol:
             return _instance
 
     if backend == "cloud":
-        from src.models.cloud.cloud_stt import CloudSTT
+        # Cloud backend only applies to the LLM; use local Whisper for STT
+        # (Google Cloud STT requires separate credentials)
+        try:
+            from src.models.local.local_stt import LocalSTT
 
-        logger.info("using_cloud_stt")
-        _instance = CloudSTT()
-        return _instance
+            logger.info("using_local_stt", reason="cloud_backend_uses_local_stt")
+            _instance = LocalSTT()
+            return _instance
+        except ImportError as exc:
+            logger.warning("local_stt_unavailable_falling_back_to_mock", error=str(exc))
+            _instance = MockSTT()
+            return _instance
 
     msg = f"Unknown model_backend: {backend}"
     raise ValueError(msg)

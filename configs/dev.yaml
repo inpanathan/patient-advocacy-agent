@@ -18,8 +18,10 @@ server:
 llm:
   temperature: 0.3
   timeout_seconds: 60
+  lora_adapter_path: ""
 
 embedding:
+  model_id: "google/medsiglip-448"
   dimension: 1152
 
 database:

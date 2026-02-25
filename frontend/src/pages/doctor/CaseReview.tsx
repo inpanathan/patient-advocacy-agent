@@ -14,12 +14,19 @@ interface CaseDetail {
     objective: string
     assessment: string
     plan: string
+    confidence: number
     disclaimer: string
   } | null
   icd_codes: string[] | null
   interview_transcript: Array<{ role: string; text: string }> | null
   doctor_notes: string | null
-  images: Array<{ id: string; file_path: string; rag_results: unknown }>
+  images: Array<{
+    id: string
+    file_path: string
+    rag_results: {
+      results: Array<{ diagnosis: string; icd_code: string; score: number }>
+    } | null
+  }>
 }
 
 export default function CaseReview() {
@@ -114,6 +121,28 @@ export default function CaseReview() {
                   </p>
                 </div>
               ))}
+              {caseData.soap_note.confidence != null && (
+                <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-100">
+                  <span className="text-sm font-medium text-gray-600">Model Confidence:</span>
+                  <span className={`text-sm font-bold ${
+                    caseData.soap_note.confidence >= 0.7 ? 'text-green-700' :
+                    caseData.soap_note.confidence >= 0.4 ? 'text-yellow-700' :
+                    'text-red-700'
+                  }`}>
+                    {(caseData.soap_note.confidence * 100).toFixed(0)}%
+                  </span>
+                  <div className="flex-1 h-2 bg-gray-200 rounded-full max-w-[120px]">
+                    <div
+                      className={`h-2 rounded-full ${
+                        caseData.soap_note.confidence >= 0.7 ? 'bg-green-500' :
+                        caseData.soap_note.confidence >= 0.4 ? 'bg-yellow-500' :
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${caseData.soap_note.confidence * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
               {caseData.soap_note.disclaimer && (
                 <p className="text-xs text-red-600 italic mt-4">{caseData.soap_note.disclaimer}</p>
               )}
@@ -177,6 +206,43 @@ export default function CaseReview() {
                 {caseData.images.map((img) => (
                   <CaseImage key={img.id} caseId={caseId!} imageId={img.id} />
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Similar Cases from SCIN dataset */}
+          {caseData.images?.some((img) => img.rag_results?.results?.length) && (
+            <div className="bg-white p-6 rounded-xl shadow-sm">
+              <h2 className="text-lg font-semibold mb-3">Similar Cases (SCIN)</h2>
+              <p className="text-xs text-gray-500 mb-3">Matched from the Harvard SCIN dermatology database</p>
+              <div className="space-y-2">
+                {caseData.images
+                  .flatMap((img) => img.rag_results?.results ?? [])
+                  .sort((a, b) => b.score - a.score)
+                  .slice(0, 5)
+                  .map((result, i) => (
+                    <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{result.diagnosis}</p>
+                        <p className="text-xs text-gray-500 font-mono">{result.icd_code}</p>
+                      </div>
+                      <div className="ml-3 flex items-center gap-1.5 shrink-0">
+                        <div className="w-16 h-1.5 bg-gray-200 rounded-full">
+                          <div
+                            className={`h-1.5 rounded-full ${
+                              result.score >= 0.8 ? 'bg-green-500' :
+                              result.score >= 0.5 ? 'bg-yellow-500' :
+                              'bg-gray-400'
+                            }`}
+                            style={{ width: `${result.score * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-gray-600 w-10 text-right">
+                          {(result.score * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
               </div>
             </div>
           )}

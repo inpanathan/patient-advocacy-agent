@@ -80,7 +80,12 @@ export default function ImageCapture() {
     setMode('camera')
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          zoom: { ideal: 2.0 },
+        } as MediaTrackConstraints,
       })
       streamRef.current = stream
       if (videoRef.current) {
